@@ -1,0 +1,365 @@
+/* ---------------------------------------------------------
+   DARK EDITORIAL — calibré sur la référence "Floria" du taste-skill
+   (github.com/Leonxlnx/taste-skill) : fond quasi-noir, cartes gris foncé
+   à bordure fine translucide, radius généreux, un seul accent (vert
+   émeraude), typographie grotesque bold + touche serif italique, boutons
+   pilule blancs. Sauvegarde avant cette passe :
+   ../backups/prototype-backup-*.zip (état neubrutalism précédent).
+--------------------------------------------------------- */
+:root {
+  --bg: #0a0a0a;
+  --card: #141414;
+  --card-border: rgba(255, 255, 255, 0.09);
+  --ink: #f5f5f4;
+  --ink-secondary: #a8a8a3;
+  --muted: #6f6f6a;
+  --accent: #34d399;
+  --accent-soft: rgba(52, 211, 153, 0.14);
+  --hairline: rgba(255, 255, 255, 0.06);
+  /* Liquid Glass (style "liquid-glass" / Apple) : matériau translucide
+     adaptatif, effet de lentille. La sidebar l'utilise ; le graphe reste
+     plus opaque (le style le recommande explicitement : "keep content on
+     a separate layer" — la lisibilité des données passe avant l'effet). */
+  --glass-bg: rgba(255, 255, 255, 0.055);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-highlight: rgba(255, 255, 255, 0.35);
+  --glass-blur: 22px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Space Grotesk", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  position: relative;
+}
+
+
+header {
+  height: 3px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 1.5; font-weight: 400; }
+
+/* Layout 2 colonnes : frise à gauche, légendes à droite, ~50/50. */
+#layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 28px 24px;
+}
+#chart-wrap {
+  flex: 3 1 0;
+  min-width: 0;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+}
+#chart-wrap svg { display: block; }
+
+#sidebar {
+  flex: 2 1 0;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 24px;
+}
+
+/* Écran étroit : les 2 colonnes ne tiennent plus à côté du tronc (560px
+   fixe) + la légende — on empile à la place. */
+@media (max-width: 900px) {
+  #layout { flex-direction: column; padding: 16px; }
+  #sidebar { position: static; }
+}
+
+/* --- Rendu D3 — mode sombre --- */
+
+.bg-catcher { fill: transparent; cursor: crosshair; }
+.axis-band { fill: var(--card); }
+.grid-line { stroke: var(--hairline); stroke-width: 1; stroke-dasharray: 1 5; }
+.river-band {
+  fill: url(#riverGradient);
+  opacity: 0.45;
+}
+.river-shadow {
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.axis-line {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+.event-node {
+  stroke: var(--card);
+  stroke-width: 2;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+}
+.event-node.dimmed { opacity: 0.22; }
+.event-node-range {
+  fill: none;
+  stroke-width: 14;
+  stroke-linecap: round;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+}
+.event-node-range.dimmed { opacity: 0.22; }
+.arc { fill: none; stroke-width: 1.6; stroke-linecap: round; transition: opacity 0.25s, stroke-width 0.25s; }
+.arc.dimmed { opacity: 0.10; }
+.arc.highlighted { opacity: 1; stroke-width: 2.6; }
+.tick text { font-size: 11px; fill: var(--muted); letter-spacing: 0.02em; }
+.tick line { stroke: var(--hairline); }
+.tick.tick-year text { font-size: 13px; font-weight: 700; fill: var(--ink); letter-spacing: 0.01em; }
+.domain { display: none; } /* on dessine notre propre trait de tronc plus épais (.axis-line) */
+
+.event-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ink);
+  text-anchor: start;
+  dominant-baseline: middle;
+  stroke: var(--card);
+  stroke-width: 3px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.event-tick {
+  stroke: none;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+/* --- Sidebar : liquid glass --- */
+
+#legend-wrap,
+#legend-types-wrap,
+#add-panel-empty,
+#add-panel {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  padding: 18px 20px;
+  /* Highlight en haut (lumière qui "entre" par le dessus, comme sur une
+     vraie lentille) + ombre portée pour détacher la carte du fond flouté. */
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 40px rgba(255, 255, 255, 0.02),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+/* Reflet diagonal subtil dans le coin haut-gauche, façon reflet de verre. */
+#legend-wrap::before,
+#legend-types-wrap::before,
+#add-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 35%);
+  pointer-events: none;
+}
+
+/* Repli si le navigateur ne supporte pas backdrop-filter (ou transparence
+   réduite demandée) : cartes solides plutôt qu'un flou qui ne s'affiche pas. */
+@media (prefers-reduced-transparency: reduce) {
+  #legend-wrap, #legend-types-wrap, #add-panel-empty, #add-panel {
+    background: var(--card);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  #legend-wrap, #legend-types-wrap, #add-panel-empty, #add-panel {
+    background: var(--card);
+  }
+}
+
+.legend-hint {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+.legend-hint::before {
+  content: "●";
+  color: var(--accent);
+  font-size: 7px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.legend-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s, transform 0.1s;
+}
+.legend-item:hover { background: rgba(255, 255, 255, 0.06); transform: translateY(-1px); }
+.legend-item.active {
+  background: var(--legend-tint, var(--accent-soft));
+  border-color: var(--legend-color, var(--accent));
+  color: var(--ink);
+  font-weight: 600;
+}
+.legend-list.has-active .legend-item:not(.active) { opacity: 0.35; }
+.legend-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--legend-tint, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--legend-color, var(--card-border));
+  flex-shrink: 0;
+}
+.legend-item.type-item { padding: 4px 12px 4px 10px; }
+.legend-item.type-item .legend-avatar {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  border-radius: 6px;
+}
+
+#tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--ink);
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.1s;
+  max-width: 240px;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Panneau création/édition : en flux normal dans la sidebar (pas une
+   popup positionnée au clic) — plus simple, plus prévisible, plus robuste
+   sur mobile (pas de clavier virtuel qui recouvre une popup ancrée au tap). --- */
+#add-panel-empty {
+  color: var(--muted);
+  font-family: "Instrument Serif", Georgia, serif;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.6;
+  border-style: dashed;
+}
+#add-panel-empty.hidden { display: none; }
+
+#add-panel { display: none; font-size: 13px; }
+#add-panel.open { display: block; }
+#add-panel h3 { margin: 0 0 2px; font-size: 16px; font-weight: 700; color: var(--ink); }
+#add-panel .add-date-hint { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
+#add-panel label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 12px 0 4px;
+}
+#add-panel input[type="text"],
+#add-panel input[type="date"],
+#add-panel select,
+#add-panel textarea {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  padding: 8px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  box-sizing: border-box;
+}
+#add-panel input:focus,
+#add-panel select:focus,
+#add-panel textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+#add-panel textarea { resize: vertical; min-height: 48px; }
+.add-people-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px;
+}
+.add-people-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--ink-secondary);
+}
+.add-people-item:hover { background: rgba(255, 255, 255, 0.06); }
+.add-people-item.checked { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+.add-people-item input { margin: 0; accent-color: var(--accent); }
+#add-panel .add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+#add-panel button {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.08s;
+}
+#add-panel button:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+#add-panel button.primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+#add-panel button.primary:hover { background: var(--accent); border-color: var(--accent); color: #06281c; }

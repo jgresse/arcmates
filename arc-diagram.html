@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>POC — Arc diagram — Frise chronolobbeutique</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+
+</header>
+
+<div id="layout">
+  <div id="chart-wrap">
+    <svg id="chart"></svg>
+  </div>
+
+  <div id="sidebar">
+    <div id="legend-wrap">
+      <p class="legend-hint">Cliquer sur une personne pour filtrer la frise sur ses arcs (re-cliquer pour désélectionner) :</p>
+      <ul id="legend" class="legend-list"></ul>
+    </div>
+    <div id="legend-types-wrap">
+      <p class="legend-hint">Cliquer sur un type d'évènement pour filtrer les nœuds correspondants :</p>
+      <ul id="legend-types" class="legend-list"></ul>
+    </div>
+
+    <div id="add-panel-empty">Clique sur une zone vide de la frise pour ajouter un évènement, ou sur un nœud existant pour le modifier.</div>
+
+    <div id="add-panel">
+      <h3 id="add-panel-title">Nouvel évènement</h3>
+      <p class="add-date-hint" id="add-date-hint">Date approximative : —</p>
+
+      <label for="add-titre">Titre</label>
+      <input type="text" id="add-titre" placeholder="Ex. Shabbeut à l'Astoria" />
+
+      <label for="add-type">Type</label>
+      <select id="add-type"></select>
+
+      <label>Personnes taguées</label>
+      <div id="add-personnes" class="add-people-list"></div>
+
+      <label for="add-date">Date précise</label>
+      <input type="date" id="add-date" />
+
+      <label for="add-date-fin">Date de fin (optionnel, si multi-jours)</label>
+      <input type="date" id="add-date-fin" />
+
+      <label for="add-desc">Description</label>
+      <textarea id="add-desc" placeholder="(optionnel)"></textarea>
+
+      <div class="add-actions">
+        <button id="add-cancel">Annuler</button>
+        <button id="add-submit" class="primary">Créer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tooltip"></div>
+
+<!-- data.js : données factices + calcul des arcs (sections 1 et 2) -->
+<script src="data.js"></script>
+<!-- chart.js : rendu D3, zoom, légendes, panneau d'ajout (sections 3 à 7) -->
+<script src="chart.js"></script>
+
+</body>
+</html>
