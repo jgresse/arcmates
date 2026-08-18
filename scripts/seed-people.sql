@@ -12,6 +12,14 @@
 -- data.js).
 -- ---------------------------------------------------------------------
 
+-- Repart d'une liste propre à chaque exécution du script (plutôt que
+-- d'accumuler des doublons à chaque relance) : on vide `people` avant de la
+-- repeupler. Si ça échoue avec une erreur de clé étrangère, c'est qu'un
+-- évènement référence encore une de ces personnes via `events.cree_par` —
+-- purge d'abord les évènements de test avec scripts/purge-events.sql, puis
+-- relance ce script.
+delete from people;
+
 -- Liste basée sur les pseudos cités dans les Tomes (Statistiques des
 -- vannes) — mêmes 24 noms utilisés pour le stress-test du POC. Emojis
 -- attribués au hasard dans le pool thématique (cf. AVATAR_EMOJIS,
