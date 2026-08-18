@@ -138,7 +138,7 @@ function render() {
   // nœuds restent positionnés sur axisX (X constant) pour ne pas complexifier
   // le calcul des positions — seul le tracé décoratif du tronc ondule, il
   // "encadre" les nœuds plutôt que de les porter exactement.
-  const RIVER_AMPLITUDE = 8;
+  const RIVER_AMPLITUDE = 10;
   const RIVER_WAVELENGTH = 160;
   const RIVER_HALF_WIDTH = 20;
   const waveOffset = y => Math.sin(y / RIVER_WAVELENGTH) * RIVER_AMPLITUDE;
