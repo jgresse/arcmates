@@ -12,13 +12,39 @@
 -- data.js).
 -- ---------------------------------------------------------------------
 
+-- Liste basée sur les pseudos cités dans les Tomes (Statistiques des
+-- vannes) — mêmes 24 noms utilisés pour le stress-test du POC. Emojis
+-- attribués au hasard dans le pool thématique (cf. AVATAR_EMOJIS,
+-- data.js) : change-les librement, ils ne servent qu'à distinguer les
+-- avatars visuellement.
 insert into people (nom, surnoms, emoji) values
   ('Greg', '{}', '🍺'),
-  ('Ju', '{}', '🍻'),
-  ('Vagin', '{}', '🥃');
-  -- ... complète avec la vraie liste des membres de la rabbeutique.
+  ('Ju', '{}', '🎸'),
+  ('Vagin', '{}', '👑'),
+  ('Ben', '{}', '🥃'),
+  ('Rich', '{}', '🔥'),
+  ('Butch', '{}', '🍖'),
+  ('Olive', '{}', '🐐'),
+  ('Delph', '{}', '🍷'),
+  ('Fabz', '{}', '😇'),
+  ('Mathilde', '{}', '🍹'),
+  ('Antho', '{}', '🥂'),
+  ('Lolo', '{}', '🎀'),
+  ('Deuz', '{}', '💀'),
+  ('Bert', '{}', '🧢'),
+  ('Pradel', '{}', '⛪'),
+  ('Guy', '{}', '🍾'),
+  ('Ruff', '{}', '👹'),
+  ('Streetie', '{}', '🕺'),
+  ('John Deer', '{}', '🌭'),
+  ('Max', '{}', '🍸'),
+  ('Cédric', '{}', '🙏'),
+  ('Alex', '{}', '📿'),
+  ('Fky', '{}', '😈'),
+  ('Juliette', '{}', '🧉');
+  -- ... ajuste/complète avec la vraie liste des membres de la rabbeutique.
   -- Exemple sans emoji (avatar pioché automatiquement) :
-  -- ('Ben', '{}', null),
+  -- ('Nouveau Nom', '{}', null),
 
 -- Pour ajouter quelqu'un plus tard, pas besoin de relancer tout le fichier :
 -- insert into people (nom, emoji) values ('Nouveau Nom', '🎸');
