@@ -1,0 +1,52 @@
+# Frise chronolobbeutique
+
+Frise chronologique verticale, collaborative, pour la communauté rabbeutique :
+chacun peut consulter et ajouter les évènements qui ont marqué son histoire
+commune. Rendu en arc diagram avec [D3.js](https://d3js.org/) — un tronc
+temporel vertical, les évènements de chaque personne reliés entre eux par des
+arcs de couleur, à la manière d'un arbre de vie.
+
+Contexte, décisions et plan détaillé : voir les notes du projet dans le vault
+Obsidian (`Frise chronolobbeutique - Concept.md` et
+`Frise chronolobbeutique - Plan V1.md`).
+
+## Stack
+
+- **JS vanilla**, aucun bundler ni framework — l'app tient dans quelques
+  `<script>` classiques chargés directement par `arc-diagram.html`.
+- **[D3.js v7](https://d3js.org/)** pour le rendu (axe temporel, zoom, arcs).
+- **[Supabase](https://supabase.com/)** (Postgres géré) pour la persistance :
+  lecture/écriture directement depuis le client via la clé `anon`/`publishable`,
+  la sécurité est assurée par des policies Row Level Security côté base (pas
+  de backend applicatif à déployer).
+
+## Fichiers
+
+| Fichier | Rôle |
+|---|---|
+| `arc-diagram.html` | Page unique de l'app, charge D3/Supabase puis les scripts ci-dessous dans l'ordre. |
+| `data.js` | Modèle statique (types/titres d'évènements) + `initData()` qui charge personnes/évènements depuis Supabase et calcule les arcs. |
+| `storage.js` | Client Supabase : CRUD `people`/`events`, conversion camelCase (JS) ↔ snake_case (SQL). |
+| `chart.js` | Rendu D3 (axe, arcs, nœuds, labels, zoom), légendes, panneau de création/édition. |
+| `style.css` | Thème dark editorial + liquid glass. |
+| `scripts/schema.sql` | Tables `people`/`events`, trigger, policies RLS. |
+| `scripts/seed-people.sql` | Liste des personnes (à éditer à la main, pas de formulaire d'inscription). |
+| `scripts/purge-events.sql` | Vide la table `events` (utile après une session de tests), sans toucher à `people`. |
+| `tests/` | Tests unitaires (`node --test`) sur la logique pure : calcul des arcs, mapping Supabase. |
+
+## Installation / déploiement
+
+Voir [`INSTALL.md`](INSTALL.md) : création des tables, seed des personnes,
+clé Supabase, test en local, déploiement GitHub Pages.
+
+## Tests
+
+```bash
+npm install
+npm test
+```
+
+Pas de framework : juste le test runner intégré à Node (`node --test`) sur
+la logique pure de `data.js`/`storage.js`. À lancer avant de commit tout
+changement sur ces deux fichiers (ou sur `chart.js` s'il touche au calcul
+des arcs).

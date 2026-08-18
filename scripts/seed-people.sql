@@ -42,7 +42,8 @@ insert into people (nom, surnoms, emoji) values
   ('Pauline', '{}', '🧘‍♀️'),
   ('Laeti', '{}', '🎸'),
   ('Alex', '{}', '📿'),
-  ('Fky', '{}', '😈'),
+  ('Franky', '{}', '😈'),
+  ('Maud', '{}', '🍩'),
   ('Juliette', '{}', '🧉');
   -- ... ajuste/complète avec la vraie liste des membres de la rabbeutique.
   -- Exemple sans emoji (avatar pioché automatiquement) :
