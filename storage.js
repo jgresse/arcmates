@@ -98,9 +98,14 @@ async function updateEvent(id, evt) {
   return rowToEvent(data);
 }
 
+async function deleteEvent(id) {
+  const { error } = await supabaseClient.from("events").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // Export CommonJS pour les tests unitaires Node (cf. tests/storage.test.js) —
 // ignoré dans le navigateur (chargé en <script> classique, `module` n'existe
 // pas), donc aucun impact sur le comportement de l'app.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { toISODate, fromISODate, rowToEvent, eventToRow, listPeople, listEvents, createEvent, updateEvent };
+  module.exports = { toISODate, fromISODate, rowToEvent, eventToRow, listPeople, listEvents, createEvent, updateEvent, deleteEvent };
 }

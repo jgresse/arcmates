@@ -536,6 +536,7 @@ const addPanel = document.getElementById("add-panel");
 const addPanelEmpty = document.getElementById("add-panel-empty");
 const addPanelTitle = document.getElementById("add-panel-title");
 const addSubmitBtn = document.getElementById("add-submit");
+const addDeleteBtn = document.getElementById("add-delete");
 const addDateHint = document.getElementById("add-date-hint");
 const addTitre = document.getElementById("add-titre");
 const addType = document.getElementById("add-type");
@@ -575,6 +576,7 @@ function openAddPanel(clickDate) {
   editingEventId = null;
   addPanelTitle.textContent = "Nouvel évènement";
   addSubmitBtn.textContent = "Créer";
+  addDeleteBtn.classList.add("hidden"); // pas de suppression en mode création
 
   pendingDate = clickDate;
   addDateHint.textContent = "Date approximative : " + d3.timeFormat("%d/%m/%Y")(clickDate);
@@ -596,6 +598,7 @@ function openEditPanel(evt) {
   editingEventId = evt.id;
   addPanelTitle.textContent = "Modifier l'évènement";
   addSubmitBtn.textContent = "Enregistrer";
+  addDeleteBtn.classList.remove("hidden");
 
   addDateHint.textContent = "Évènement existant — ajuste puis enregistre";
   addTitre.value = evt.titre;
@@ -668,6 +671,26 @@ d3.select("#add-submit").on("click", async () => {
     showStatus("Erreur : la sauvegarde a échoué, réessaie.", true);
   } finally {
     addSubmitBtn.disabled = false;
+  }
+});
+
+d3.select("#add-delete").on("click", async () => {
+  if (!editingEventId) return; // sécurité : bouton normalement caché en mode création
+  if (!window.confirm("Supprimer définitivement cet évènement ? Cette action est irréversible.")) return;
+
+  addDeleteBtn.disabled = true;
+  try {
+    await deleteEvent(editingEventId);
+    events = events.filter(e => e.id !== editingEventId);
+    recomputeArcs();
+    closeAddPanel();
+    render();
+    hideStatus();
+  } catch (err) {
+    console.error(err);
+    showStatus("Erreur : la suppression a échoué, réessaie.", true);
+  } finally {
+    addDeleteBtn.disabled = false;
   }
 });
 

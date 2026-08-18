@@ -20,8 +20,14 @@ project → choisir une région → attendre la fin du provisioning, ~2 min.)
 3. **Run**. Ça crée les tables `people` et `events`, un trigger qui met à
    jour `modifie_le` automatiquement, et active la Row Level Security (RLS)
    avec les policies décrites dans le plan (lecture publique sur les deux
-   tables, écriture publique sur `events` uniquement — `people` reste en
-   lecture seule depuis l'app).
+   tables, écriture/suppression publique sur `events` uniquement — `people`
+   reste en lecture seule depuis l'app).
+
+   ⚠️ Si tu avais déjà exécuté `schema.sql` **avant** l'ajout de la
+   suppression d'évènement, ta base n'a pas encore la policy de delete —
+   exécute une fois [`scripts/2024-08-add-delete-policy.sql`](scripts/2024-08-add-delete-policy.sql)
+   pour la rattraper (les nouvelles installations n'ont pas besoin de cette
+   étape, elle est déjà dans `schema.sql`).
 
 ## 3. Ajouter les personnes (seed-people.sql)
 

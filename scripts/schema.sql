@@ -53,6 +53,7 @@ create policy "people_select_all" on people for select using (true);
 create policy "events_select_all" on events for select using (true);
 create policy "events_insert_all" on events for insert with check (true);
 create policy "events_update_all" on events for update using (true);
+create policy "events_delete_all" on events for delete using (true);
 -- Volontairement PAS de policy insert/update sur `people` : la table est en
 -- lecture seule depuis l'app. Les personnes sont ajoutées à la main par le
 -- propriétaire du projet via scripts/seed-people.sql (cf. Plan V1 — pas de
