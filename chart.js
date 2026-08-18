@@ -508,17 +508,9 @@ window.addEventListener("resize", () => {
   resizeTimer = setTimeout(handleResize, 120);
 });
 
-// légende personnes, cliquable : avatar (emoji) + nom, sert de sélecteur de filtre.
-d3.select("#legend").selectAll(".legend-item")
-  .data(people)
-  .join("li")
-  .attr("class", "legend-item")
-  .style("--legend-color", d => d.couleur)
-  .style("--legend-tint", d => d3.interpolateRgb("#fff", d.couleur)(0.18))
-  .html(d => `<span class="legend-avatar">${d.avatar}</span>${d.nom}`)
-  .on("click", (event, d) => setFilter(d.id));
-
 // légende types d'évènement, cliquable : couleur + emoji + libellé, filtre les nœuds.
+// (statique — indépendante de Supabase — donc peut être peuplée tout de
+// suite, contrairement à la légende personnes qui attend le chargement).
 d3.select("#legend-types").selectAll(".legend-item")
   .data(EVENT_TYPES)
   .join("li")
@@ -557,20 +549,6 @@ d3.select(addType).selectAll("option")
   .join("option")
   .attr("value", d => d)
   .text(d => `${TYPE_EMOJIS[d]} ${d}`);
-
-// Liste de cases à cocher plutôt qu'un select simple : un évènement peut
-// taguer plusieurs personnes (cf. modèle de données), un <select> mono-choix
-// ne suffisait pas.
-d3.select(addPersonnesList).selectAll(".add-people-item")
-  .data(people)
-  .join("label")
-  .attr("class", "add-people-item")
-  .html(d => `<input type="checkbox" value="${d.id}" /><span>${d.avatar} ${d.nom}</span>`)
-  .each(function () {
-    const item = d3.select(this);
-    const checkbox = item.select("input");
-    checkbox.on("change", () => item.classed("checked", checkbox.property("checked")));
-  });
 
 let pendingDate = null;
 let editingEventId = null; // null = mode création, sinon id de l'évènement en cours d'édition
@@ -645,7 +623,18 @@ bgCatcher.on("click", (event) => {
 
 d3.select("#add-cancel").on("click", closeAddPanel);
 
-d3.select("#add-submit").on("click", () => {
+const loadStatus = document.getElementById("load-status");
+function showStatus(message, isError) {
+  loadStatus.textContent = message;
+  loadStatus.classList.add("visible");
+  loadStatus.classList.toggle("error", !!isError);
+}
+function hideStatus() {
+  loadStatus.classList.remove("visible");
+  loadStatus.classList.remove("error");
+}
+
+d3.select("#add-submit").on("click", async () => {
   const type = addType.value;
   const titre = addTitre.value.trim() || pickTitleForType(type);
   const personnesTaguees = Array.from(addPersonnesList.querySelectorAll("input:checked")).map(el => el.value);
@@ -653,19 +642,80 @@ d3.select("#add-submit").on("click", () => {
   const dateFin = addDateFin.value ? new Date(addDateFin.value + "T00:00:00") : undefined;
   const description = addDesc.value.trim() || undefined;
 
-  if (editingEventId) {
-    // Édition : on met à jour l'évènement existant en place plutôt que d'en
-    // recréer un nouveau, pour conserver son id (et donc sa place dans les
-    // arcs déjà calculés une fois recomputeArcs() relancé).
-    const evt = events.find(e => e.id === editingEventId);
-    Object.assign(evt, { titre, type, date, dateFin, personnesTaguees, description });
-  } else {
-    events.push({ id: "e" + (eventId++), titre, type, date, dateFin, personnesTaguees, description });
-  }
+  addSubmitBtn.disabled = true;
+  try {
+    if (editingEventId) {
+      // Édition : on met à jour l'évènement existant en base, puis on
+      // remplace l'entrée locale par la version renvoyée par Supabase
+      // (source de vérité — modifie_le, historique, etc. y sont recalculés
+      // côté serveur, cf. scripts/schema.sql).
+      const updated = await updateEvent(editingEventId, { titre, type, date, dateFin, personnesTaguees, description });
+      const idx = events.findIndex(e => e.id === editingEventId);
+      if (idx !== -1) events[idx] = updated;
+    } else {
+      // Création : l'id (uuid) est généré par Postgres, pas côté client —
+      // on pousse la ligne renvoyée par Supabase dans le tableau local.
+      const created = await createEvent({ titre, type, date, dateFin, personnesTaguees, description });
+      events.push(created);
+    }
 
-  recomputeArcs();
-  closeAddPanel();
-  render();
+    recomputeArcs();
+    closeAddPanel();
+    render();
+    hideStatus();
+  } catch (err) {
+    console.error(err);
+    showStatus("Erreur : la sauvegarde a échoué, réessaie.", true);
+  } finally {
+    addSubmitBtn.disabled = false;
+  }
 });
 
-render();
+// Peuple les listes qui dépendent des personnes chargées depuis Supabase
+// (légende + cases à cocher du panneau) — appelé une fois par boot(), et
+// pas seulement à l'ouverture du panneau, pour rester en phase avec le
+// filtre courant dès le premier rendu.
+function renderPeopleUI() {
+  d3.select("#legend").selectAll(".legend-item")
+    .data(people)
+    .join("li")
+    .attr("class", "legend-item")
+    .style("--legend-color", d => d.couleur)
+    .style("--legend-tint", d => d3.interpolateRgb("#fff", d.couleur)(0.18))
+    .html(d => `<span class="legend-avatar">${d.avatar}</span>${d.nom}`)
+    .on("click", (event, d) => setFilter(d.id));
+
+  // Liste de cases à cocher plutôt qu'un select simple : un évènement peut
+  // taguer plusieurs personnes (cf. modèle de données), un <select>
+  // mono-choix ne suffisait pas.
+  d3.select(addPersonnesList).selectAll(".add-people-item")
+    .data(people)
+    .join("label")
+    .attr("class", "add-people-item")
+    .html(d => `<input type="checkbox" value="${d.id}" /><span>${d.avatar} ${d.nom}</span>`)
+    .each(function () {
+      const item = d3.select(this);
+      const checkbox = item.select("input");
+      checkbox.on("change", () => item.classed("checked", checkbox.property("checked")));
+    });
+}
+
+// Démarrage : on attend le chargement Supabase (personnes + évènements)
+// avant de peupler la légende/le panneau et de lancer le premier render() —
+// tout le reste du fichier (setup D3, zoom, panneau) est indépendant des
+// données et peut s'exécuter avant.
+async function boot() {
+  showStatus("Chargement…", false);
+  try {
+    await initData();
+    hideStatus();
+  } catch (err) {
+    console.error(err);
+    showStatus("Erreur de chargement — vérifie ta connexion et recharge la page.", true);
+    return;
+  }
+  renderPeopleUI();
+  render();
+}
+
+boot();
