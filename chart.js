@@ -63,7 +63,7 @@ riverGradient.append("stop").attr("offset", "100%").attr("stop-color", "#0d3b2c"
 // yScale : la vue courante, recalculée à chaque geste de zoom/pan vertical
 // via rescaleY.
 const baseScale = d3.scaleTime()
-  .domain([new Date(2012, 0, 1), new Date(2026, 6, 1)])
+  .domain([new Date(1998, 0, 1), new Date(2026, 6, 1)])
   .range([margin.top, height - margin.bottom]);
 let yScale = baseScale.copy();
 
