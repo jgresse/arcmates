@@ -55,12 +55,15 @@ riverGradient.append("stop").attr("offset", "0%").attr("stop-color", "#0d3b2c");
 riverGradient.append("stop").attr("offset", "50%").attr("stop-color", "#34d399");
 riverGradient.append("stop").attr("offset", "100%").attr("stop-color", "#0d3b2c");
 
-// baseScale : référence fixe (domaine complet, calé sur la période couverte
-// par les Tomes, 2011-2026) mappée sur la hauteur du viewport.
+// baseScale : référence fixe (domaine complet affiché à zoom dézoomé au
+// maximum) mappée sur la hauteur du viewport. Bornes ajustées à la vraie
+// période couverte par les évènements réels (le POC avait des données
+// factices remontant à 2010). new Date(année, mois, jour) : le mois est
+// indexé à partir de 0 (0 = janvier).
 // yScale : la vue courante, recalculée à chaque geste de zoom/pan vertical
 // via rescaleY.
 const baseScale = d3.scaleTime()
-  .domain([new Date(2010, 6, 1), new Date(2026, 6, 1)])
+  .domain([new Date(2012, 0, 1), new Date(2026, 6, 1)])
   .range([margin.top, height - margin.bottom]);
 let yScale = baseScale.copy();
 
