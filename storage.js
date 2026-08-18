@@ -99,8 +99,16 @@ async function updateEvent(id, evt) {
 }
 
 async function deleteEvent(id) {
-  const { error } = await supabaseClient.from("events").delete().eq("id", id);
+  // .select() ici pour récupérer la ligne effectivement supprimée : sans ça,
+  // un DELETE bloqué par une policy RLS manquante ne renvoie AUCUNE erreur
+  // (Postgres/Supabase filtre juste silencieusement 0 ligne) — on le
+  // détecterait donc pas, et l'app croirait la suppression réussie alors
+  // que la ligne est toujours en base.
+  const { data, error } = await supabaseClient.from("events").delete().eq("id", id).select();
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Suppression refusée par la base (policy RLS manquante ou évènement déjà supprimé) — cf. scripts/2024-08-add-delete-policy.sql");
+  }
 }
 
 // Export CommonJS pour les tests unitaires Node (cf. tests/storage.test.js) —
