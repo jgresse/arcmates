@@ -17,7 +17,12 @@
 const SUPABASE_URL = "https://izzwaxgtwikjweebtcgs.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_SEK_DarXbn5HrP5zJQ27Dw_odORi51s"; // cf. INSTALL.md étape 4
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Garde pour permettre de charger ce fichier avec `require()` depuis les
+// tests unitaires Node (cf. tests/), où `window`/le SDK Supabase CDN
+// n'existent pas — sans effet sur le comportement dans le navigateur.
+const supabaseClient = (typeof window !== "undefined" && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
 // --- Conversion date JS <-> colonne `date` Postgres (string "YYYY-MM-DD") ---
 // Toujours passer par "T00:00:00" en local au parsing pour éviter le décalage
@@ -91,4 +96,11 @@ async function updateEvent(id, evt) {
     .single();
   if (error) throw error;
   return rowToEvent(data);
+}
+
+// Export CommonJS pour les tests unitaires Node (cf. tests/storage.test.js) —
+// ignoré dans le navigateur (chargé en <script> classique, `module` n'existe
+// pas), donc aucun impact sur le comportement de l'app.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { toISODate, fromISODate, rowToEvent, eventToRow, listPeople, listEvents, createEvent, updateEvent };
 }

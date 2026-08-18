@@ -150,8 +150,12 @@ async function initData() {
    relier chaque paire consécutive par un arc.
 --------------------------------------------------------- */
 
-function computeArcsForPerson(person) {
-  const personEvents = events
+// `eventsList` par défaut = `events` (binding du module, peuplé par
+// initData()) — paramètre explicite surtout pour permettre aux tests
+// unitaires d'appeler cette fonction avec un jeu d'évènements contrôlé,
+// sans dépendre du chargement Supabase (cf. tests/data.test.js).
+function computeArcsForPerson(person, eventsList = events) {
+  const personEvents = eventsList
     .filter(e => e.personnesTaguees.includes(person.id))
     .sort((a, b) => a.date - b.date);
 
@@ -168,5 +172,16 @@ function computeArcsForPerson(person) {
 }
 
 function recomputeArcs() {
-  allArcs = people.flatMap(computeArcsForPerson);
+  allArcs = people.flatMap(p => computeArcsForPerson(p));
+}
+
+// Export CommonJS pour les tests unitaires Node (cf. tests/data.test.js) —
+// ignoré dans le navigateur (chargé en <script> classique, `module` n'existe
+// pas), donc aucun impact sur le comportement de l'app.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    TITLES_BY_TYPE, EVENT_TYPES, pickTitleForType,
+    TYPE_COLORS, TYPE_EMOJIS, typeColor, AVATAR_EMOJIS,
+    computeArcsForPerson
+  };
 }

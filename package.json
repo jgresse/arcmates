@@ -1,0 +1,11 @@
+{
+  "name": "rbbt-rcu",
+  "private": true,
+  "description": "Frise chronolobbeutique — pas de build/bundler : ce package.json sert uniquement aux tests unitaires (node --test) et à leur dépendance d3. L'app elle-même reste du JS vanilla chargé en <script> classiques, cf. arc-diagram.html.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "d3": "^7.9.0"
+  }
+}

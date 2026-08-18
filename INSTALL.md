@@ -76,7 +76,32 @@ En cas d'erreur, un bandeau apparaît en haut de l'écran (`#load-status`) —
 ouvrir la console du navigateur (F12) pour le détail de l'erreur Supabase
 (clé invalide, RLS mal configurée, etc.).
 
-## 6. Déployer (GitHub Pages)
+### Purger les évènements de test
+
+Après une session de tests, `scripts/purge-events.sql` vide la table
+`events` (sans toucher à `people`) : à coller/exécuter dans le SQL Editor
+Supabase. Il contient aussi des variantes en commentaire pour ne purger
+qu'une partie des évènements (par date de création, par personne...).
+
+## 6. Tests unitaires
+
+La logique pure (calcul des arcs, conversion des dates, mapping
+camelCase ↔ snake_case) est couverte par des tests Node, sans framework ni
+build — juste le test runner intégré à Node (`node --test`) :
+
+```bash
+npm install   # une fois, installe d3 comme dépendance de test
+npm test
+```
+
+Les fichiers `data.js`/`storage.js` restent chargés en `<script>` classique
+dans le navigateur (aucun changement de comportement) ; ils exposent en plus
+un `module.exports` (ignoré par le navigateur, utilisé par les tests) pour
+que `tests/*.test.js` puisse les `require()`. À faire à chaque modif de
+`data.js`/`storage.js`/`chart.js` avant de commit, pour attraper vite une
+régression sur le calcul des arcs ou le mapping Supabase.
+
+## 7. Déployer (GitHub Pages)
 
 Le site est 100% statique (pas de build), donc GitHub Pages suffit :
 
