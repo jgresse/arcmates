@@ -65,6 +65,16 @@
 <div id="tooltip"></div>
 <div id="load-status"></div>
 
+<div id="mobile-modal" class="hidden">
+  <div id="mobile-modal-inner">
+    <div id="mobile-modal-header">
+      <span id="mobile-modal-title"></span>
+      <button id="mobile-modal-close">✕</button>
+    </div>
+    <!-- #add-panel sera déplacé ici via JS sur mobile -->
+  </div>
+</div>
+
 <!-- data.js : modèle statique (types/titres) + chargement Supabase + calcul des arcs -->
 <script src="data.js"></script>
 <!-- storage.js : couche Supabase (CRUD people/events) — cf. Plan V1 Phase C -->

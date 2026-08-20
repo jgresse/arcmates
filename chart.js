@@ -508,7 +508,17 @@ function handleResize() {
 let resizeTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(handleResize, 120);
+  resizeTimer = setTimeout(() => {
+    handleResize();
+    // Si passage mobile → desktop : remettre le panneau dans la sidebar
+    if (!isMobile() && mobilePanelMoved) {
+      document.getElementById("sidebar").appendChild(addPanel);
+      mobilePanelMoved = false;
+      const modal = document.getElementById("mobile-modal");
+      modal.classList.remove("open");
+      modal.classList.add("hidden");
+    }
+  }, 120);
 });
 
 // légende types d'évènement, cliquable : couleur + emoji + libellé, filtre les nœuds.
@@ -534,6 +544,28 @@ d3.select("#legend-types").selectAll(".legend-item")
    mobile (pas de calcul de position ni de clavier virtuel qui recouvre une
    popup ancrée au point de tap).
 --------------------------------------------------------- */
+
+// ---- Détection mobile ----
+function isMobile() { return window.innerWidth <= 768; }
+
+// ---- Modal full-screen pour le formulaire sur mobile ----
+let mobilePanelMoved = false;
+
+function openMobileModal() {
+  const modal = document.getElementById("mobile-modal");
+  const modalInner = document.getElementById("mobile-modal-inner");
+  document.getElementById("mobile-modal-title").textContent = addPanelTitle.textContent;
+  if (!mobilePanelMoved) {
+    modalInner.appendChild(addPanel);
+    mobilePanelMoved = true;
+  }
+  modal.classList.remove("hidden");
+  modal.classList.add("open");
+}
+
+function closeMobileModal() {
+  document.getElementById("mobile-modal").classList.remove("open");
+}
 
 const addPanel = document.getElementById("add-panel");
 const addPanelEmpty = document.getElementById("add-panel-empty");
@@ -569,8 +601,12 @@ function checkPeople(ids) {
 }
 
 function showPanel() {
-  addPanel.classList.add("open");
-  addPanelEmpty.classList.add("hidden");
+  if (isMobile()) {
+    openMobileModal();
+  } else {
+    addPanel.classList.add("open");
+    addPanelEmpty.classList.add("hidden");
+  }
   addTitre.focus();
 }
 
@@ -616,8 +652,12 @@ function openEditPanel(evt) {
 }
 
 function closeAddPanel() {
-  addPanel.classList.remove("open");
-  addPanelEmpty.classList.remove("hidden");
+  if (isMobile()) {
+    closeMobileModal();
+  } else {
+    addPanel.classList.remove("open");
+    addPanelEmpty.classList.remove("hidden");
+  }
   editingEventId = null;
 }
 
@@ -743,5 +783,8 @@ async function boot() {
   renderPeopleUI();
   render();
 }
+
+// Bouton fermeture modal mobile
+document.getElementById("mobile-modal-close").addEventListener("click", closeAddPanel);
 
 boot();
