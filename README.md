@@ -32,6 +32,7 @@ Obsidian (`Frise chronolobbeutique - Concept.md` et
 | `scripts/schema.sql` | Tables `people`/`events`, trigger, policies RLS. |
 | `scripts/seed-people.sql` | Liste des personnes (à éditer à la main, pas de formulaire d'inscription). |
 | `scripts/purge-events.sql` | Vide la table `events` (utile après une session de tests), sans toucher à `people`. |
+| `scripts/2024-08-add-delete-policy.sql` | Migration ponctuelle : ajoute la policy de delete sur `events` aux bases créées avant qu'elle soit intégrée à `schema.sql`. |
 | `tests/` | Tests unitaires (`node --test`) sur la logique pure : calcul des arcs, mapping Supabase. |
 
 ## Installation / déploiement
