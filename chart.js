@@ -20,6 +20,11 @@ const margin = { top: 30, right: 30, bottom: 30, left: 30 };
 // dans la version horizontale (le zoom ne fait pas défiler la page, il
 // recadre le domaine temporel affiché).
 function computeHeight() {
+  const wrap = document.getElementById("chart-wrap");
+  if (wrap && window.innerWidth <= 900) {
+    // Sur mobile, chart-wrap est fixed inset:0 donc height = window.innerHeight
+    return window.innerHeight;
+  }
   return Math.max(520, window.innerHeight - 260);
 }
 let height = computeHeight();
@@ -546,7 +551,19 @@ d3.select("#legend-types").selectAll(".legend-item")
 --------------------------------------------------------- */
 
 // ---- Détection mobile ----
-function isMobile() { return window.innerWidth <= 768; }
+function isMobile() { return window.innerWidth <= 900; }
+
+// ---- Drawer mobile ----
+function openDrawer() {
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("drawer-backdrop").classList.add("visible");
+}
+function closeDrawer() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("drawer-backdrop").classList.remove("visible");
+}
+document.getElementById("drawer-toggle").addEventListener("click", openDrawer);
+document.getElementById("drawer-backdrop").addEventListener("click", closeDrawer);
 
 // ---- Modal full-screen pour le formulaire sur mobile ----
 let mobilePanelMoved = false;
@@ -602,6 +619,7 @@ function checkPeople(ids) {
 
 function showPanel() {
   if (isMobile()) {
+    closeDrawer();
     openMobileModal();
   } else {
     addPanel.classList.add("open");
