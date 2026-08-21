@@ -75,15 +75,15 @@ p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 
   top: 14px;
   left: 14px;
   z-index: 60;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   border: 1px solid var(--glass-border);
   background: rgba(20,20,20,0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: var(--ink);
-  font-size: 18px;
+  font-size: 22px;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
@@ -92,8 +92,8 @@ p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 
 #sidebar {
   position: fixed;
   top: 0;
-  left: -300px;
-  width: 280px;
+  left: -340px;
+  width: 320px;
   height: 100dvh;
   overflow-y: auto;
   z-index: 50;
