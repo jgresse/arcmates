@@ -16,7 +16,7 @@ npm run test:e2e                            # navigation dans un vrai Chromium, 
 
 ## 1. ✅ Dernière exécution — `npm test` (unitaire + intégration jsdom)
 
-**🟢 29 / 29 tests passent, 0 échec, 0 skip — durée totale ≈ 1.0 s.**
+**🟢 29 / 29 tests passent, 0 échec, 0 skip — durée totale ≈ 0.7 s.**
 
 | Fichier de test | Tests | Résultat | Portée |
 |---|---|---|---|
@@ -70,7 +70,7 @@ npm run test:e2e                            # navigation dans un vrai Chromium, 
 
 ## 2. 🌐 Dernière exécution — `npm run test:e2e` (navigation, vrai navigateur)
 
-**🟢 6 / 6 tests passent — durée totale ≈ 10.7 s (4 workers, Chromium headless).**
+**🟢 6 / 6 tests passent — durée totale ≈ 3.1 s (4 workers, Chromium headless).**
 
 ⚠️ Contrairement à `npm test`, cette suite fait de vraies requêtes réseau vers
 Supabase (lecture seule — `listPeople`/`listEvents`) pour charger
