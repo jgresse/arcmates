@@ -16,9 +16,6 @@
       le filtre. Petit lien "Ce n'est pas moi" pour changer d'identité.
       Aujourd'hui : `cree_par` n'est jamais rempli, aucune UI de sélection
       d'identité n'existe.
-- [x] **Déploiement GitHub Pages** — confirmé actif : `https://jgresse.github.io/arcmates/`,
-      suit automatiquement les push sur `main`. C'est le lien à partager avec
-      le groupe.
 
 ## Idée à évaluer (pas prioritaire)
 
@@ -37,6 +34,14 @@
 
 ## Backlog (non bloquant, à revisiter si besoin)
 
+- [ ] Arcs narratifs — regrouper les évènements d'une période sous un
+      "arc" nommé par le groupe (ex. "l'arc coloc", "l'arc Berlin"), façon
+      chapitres d'une série, en plus du découpage temporel brut. Concept
+      posé dans `Arcmates - Concept.md` (vault Obsidian) mais mécanique pas
+      définie côté implémentation : création d'un arc, bornes temporelles,
+      affichage sur la frise, gestion des arcs qui se chevauchent entre
+      personnes.
+
 - [ ] Chargement des évènements par plage de dates plutôt que tout charger
       d'un coup — seulement si le volume réel grossit et ralentit le
       chargement initial. Prématuré tant que le groupe est petit.
@@ -54,14 +59,11 @@
 - [ ] Vue "aujourd'hui il y a X ans" — met en avant les évènements dont
       c'est l'anniversaire, façon "souvenirs".
 - [ ] Commentaires sur un évènement (qui se souvient de quoi).
-- [ ] Notion de "saisons" façon série TV pour découper la frise (temporel
-      fixe type "1 saison = 1 an", ou thématique/narratif) — idée notée,
-      pas creusée.
 
 ## Hors périmètre actuel (v2+)
 
 - Frises personnelles — instances autonomes du même graphe, décorrélées de
-  la frise rabbeutique, pour d'autres groupes.
+  la frise fondatrice, pour d'autres groupes.
 - Page admin / rôles / gestion des types d'évènements en UI (aujourd'hui
   liste fixe codée en dur).
 - Notifications e-mail quand une personne est taguée.
