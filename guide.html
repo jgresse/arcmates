@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title data-i18n="meta_title">Guide — Frise chronolobbeutique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header></header>
+
+<main class="guide-page">
+  <div class="guide-topbar">
+    <a class="guide-back" href="arc-diagram.html" data-i18n="nav_back">← Retour à la frise</a>
+    <div class="guide-lang-switch" role="group" data-i18n-aria="lang_label" aria-label="Langue">
+      <button type="button" data-lang-btn="fr">FR</button>
+      <button type="button" data-lang-btn="en">EN</button>
+    </div>
+  </div>
+
+  <div class="guide-hero">
+    <h1 data-i18n="hero_title">Mode d'emploi</h1>
+    <p data-i18n="hero_subtitle">Comment lire, filtrer et compléter la frise chronolobbeutique.</p>
+  </div>
+
+  <section class="guide-section">
+    <h2 data-i18n="s1_title">Qu'est-ce que la frise ?</h2>
+    <p data-i18n="s1_body">La frise retrace, sur un même tronc temporel vertical, les évènements marquants de chacun·e. Chaque personne a sa propre couleur : ses évènements sont reliés entre eux par des arcs de cette couleur, un peu comme un arbre de vie partagé.</p>
+  </section>
+
+  <section class="guide-section">
+    <h2 data-i18n="s2_title">Se déplacer sur la frise</h2>
+    <p data-i18n="s2_body">Fais glisser pour te déplacer le long du tronc temporel, et pince ou utilise la molette pour zoomer/dézoomer. Le bouton ☰ en haut à gauche ouvre le panneau des filtres et du formulaire d'ajout.</p>
+  </section>
+
+  <section class="guide-section">
+    <h2 data-i18n="s3_title">Filtrer par personne ou par type</h2>
+    <p data-i18n="s3_body">Dans le panneau, clique sur une personne pour ne voir que ses arcs (re-clique pour désélectionner). Clique sur un type d'évènement (fête, voyage, concert…) pour ne garder que les nœuds de ce type. Les deux filtres se combinent.</p>
+  </section>
+
+  <section class="guide-section">
+    <h2 data-i18n="s4_title">Ajouter un évènement</h2>
+    <p data-i18n="s4_body">Clique sur une zone vide de la frise à la date qui t'intéresse : un formulaire s'ouvre.</p>
+    <ol class="guide-steps">
+      <li data-i18n="s4_step1">Renseigne le titre, le type d'évènement et les personnes taguées.</li>
+      <li data-i18n="s4_step2">Ajuste la date précise (et une date de fin si l'évènement dure plusieurs jours).</li>
+      <li data-i18n="s4_step3">Valide avec « Créer » — l'évènement apparaît immédiatement sur la frise.</li>
+    </ol>
+  </section>
+
+  <section class="guide-section">
+    <h2 data-i18n="s5_title">Modifier ou supprimer un évènement</h2>
+    <p data-i18n="s5_body">Clique sur un nœud existant pour rouvrir son formulaire, pré-rempli. Modifie ce que tu veux puis valide, ou utilise le bouton « Supprimer » pour le retirer définitivement.</p>
+  </section>
+
+  <section class="guide-section guide-faq">
+    <h2 data-i18n="s7_title">Questions fréquentes</h2>
+    <dl>
+      <div class="guide-faq-item">
+        <dt data-i18n="faq1_q">Je ne vois pas l'évènement que je viens d'ajouter, pourquoi ?</dt>
+        <dd data-i18n="faq1_a">Vérifie qu'aucun filtre (personne ou type) n'est actif — un filtre peut masquer l'évènement fraîchement créé. Sinon, vérifie ta connexion : sans réseau, l'enregistrement échoue et un message d'erreur s'affiche en haut de l'écran.</dd>
+      </div>
+      <div class="guide-faq-item">
+        <dt data-i18n="faq2_q">Puis-je modifier l'évènement de quelqu'un d'autre ?</dt>
+        <dd data-i18n="faq2_a">Oui : il n'y a pas de compte personnel, tout le monde peut ajouter, modifier ou supprimer n'importe quel évènement. Fais preuve de bon sens collectif.</dd>
+      </div>
+      <div class="guide-faq-item">
+        <dt data-i18n="faq3_q">Comment faire ajouter une nouvelle personne à la frise ?</dt>
+        <dd data-i18n="faq3_a">Les personnes ne s'ajoutent pas depuis l'app (pas de formulaire d'inscription) — demande à la personne qui gère la base de données de t'ajouter.</dd>
+      </div>
+    </dl>
+  </section>
+</main>
+
+<script src="guide-i18n.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => initLang(document));
+</script>
+
+</body>
+</html>

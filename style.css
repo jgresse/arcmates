@@ -484,3 +484,139 @@ p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 
   padding: 4px 8px;
 }
 #mobile-modal #add-panel { display: block !important; }
+
+/* ---------------------------------------------------------
+   GUIDE — page statique guide.html (doc utilisateur, bilingue FR/EN).
+   Page de lecture classique (pas de layout plein écran comme la frise) :
+   colonne centrée, sections empilées séparées par un hairline.
+--------------------------------------------------------- */
+.guide-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 96px;
+  min-height: 100dvh;
+}
+
+.guide-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 44px;
+}
+
+.guide-back {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  text-decoration: none;
+  padding: 8px 4px;
+  transition: color 0.15s;
+}
+.guide-back:hover { color: var(--ink); }
+
+.guide-lang-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+}
+.guide-lang-switch button {
+  border: none;
+  background: transparent;
+  color: var(--ink-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.guide-lang-switch button:hover { color: var(--ink); }
+.guide-lang-switch button.active { background: var(--ink); color: var(--bg); }
+
+.guide-hero h1 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(30px, 6vw, 46px);
+  line-height: 1.15;
+  margin: 0 0 16px;
+}
+.guide-hero > p {
+  color: var(--ink-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 52px;
+  max-width: 46ch;
+}
+
+.guide-section {
+  padding-bottom: 32px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--hairline);
+}
+.guide-section:last-of-type { border-bottom: none; margin-bottom: 0; }
+.guide-section h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.guide-section p {
+  color: var(--ink-secondary);
+  font-size: 14.5px;
+  line-height: 1.75;
+  margin: 0;
+}
+.guide-steps {
+  margin: 14px 0 0;
+  padding-left: 22px;
+  color: var(--ink-secondary);
+  font-size: 14.5px;
+  line-height: 1.9;
+}
+
+.guide-faq dl { margin: 0; }
+.guide-faq-item { margin-bottom: 20px; }
+.guide-faq-item:last-child { margin-bottom: 0; }
+.guide-faq-item dt {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 14.5px;
+  margin: 0 0 6px;
+}
+.guide-faq-item dd {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: 14.5px;
+  line-height: 1.75;
+}
+
+/* Lien "Guide" dans le drawer gauche (#sidebar) de arc-diagram.html */
+.sidebar-guide-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-guide-link:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
+
+@media (max-width: 480px) {
+  .guide-page { padding: 32px 18px 72px; }
+  .guide-hero > p { max-width: none; }
+}

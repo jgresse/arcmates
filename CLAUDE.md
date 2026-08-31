@@ -18,17 +18,31 @@ la sécurité est assurée par les policies Row Level Security de
 ## Commands
 
 ```bash
-npm install   # une fois, installe d3 comme dépendance de test
-npm test      # node --test — seule commande de dev existante
+npm install       # une fois, installe d3/jsdom/@playwright/test comme dépendances de test
+npx playwright install chromium   # une fois, télécharge le binaire Chromium (~180 Mo)
+npm test          # node --test — logique pure + DOM simulé (jsdom), rapide
+npm run test:e2e  # playwright test — navigation dans un vrai Chromium
 ```
 
 Pas de lint ni de build configurés. Pour un test unique :
 `node --test tests/data.test.js` (ou `tests/storage.test.js`).
 
-À lancer avant tout commit touchant `data.js`, `storage.js`, ou `chart.js`
-(s'il touche au calcul des arcs) — ces fichiers exposent un `module.exports`
-CommonJS (ignoré par le navigateur) uniquement pour que `tests/*.test.js`
-puisse les `require()` sans dépendre d'un DOM ou d'un vrai appel réseau.
+`npm test` : à lancer avant tout commit touchant `data.js`, `storage.js`, ou
+`chart.js` (s'il touche au calcul des arcs) — ces fichiers exposent un
+`module.exports` CommonJS (ignoré par le navigateur) uniquement pour que
+`tests/*.test.js` puisse les `require()` sans dépendre d'un DOM ou d'un vrai
+appel réseau. Inclut aussi `tests/guide-i18n.test.js` (dictionnaire i18n) et
+`tests/guide-integration.test.js` (DOM simulé via `jsdom` sur `guide.html`
+et `arc-diagram.html`).
+
+`npm run test:e2e` (`tests/e2e/`, config `playwright.config.js`) : tests de
+navigation dans un vrai navigateur (drawer, lien vers le guide, sélecteur de
+langue) — volontairement limités à la navigation UI, sans créer/modifier/
+supprimer d'évènement (ça écrirait dans la vraie base Supabase, pas de
+projet de test séparé). `arc-diagram.html` y fait de vraies lectures
+Supabase (`listPeople`/`listEvents`, lecture seule) : nécessite un accès
+réseau sortant. Sert son propre serveur statique local
+(`tests/e2e/static-server.js`), lancé automatiquement par Playwright.
 
 Pour tester en local dans le navigateur : ouvrir `arc-diagram.html`
 directement (pas de serveur requis).

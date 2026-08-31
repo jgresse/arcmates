@@ -1,11 +1,14 @@
 {
   "name": "rbbt-rcu",
   "private": true,
-  "description": "Frise chronolobbeutique — pas de build/bundler : ce package.json sert uniquement aux tests unitaires (node --test) et à leur dépendance d3. L'app elle-même reste du JS vanilla chargé en <script> classiques, cf. arc-diagram.html.",
+  "description": "Frise chronolobbeutique — pas de build/bundler : ce package.json sert aux tests unitaires (node --test) et à leurs dépendances (d3, jsdom), plus aux tests e2e Playwright (navigation dans un vrai navigateur). L'app elle-même reste du JS vanilla chargé en <script> classiques, cf. arc-diagram.html.",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "d3": "^7.9.0"
+    "@playwright/test": "^1.62.1",
+    "d3": "^7.9.0",
+    "jsdom": "^29.1.1"
   }
 }
