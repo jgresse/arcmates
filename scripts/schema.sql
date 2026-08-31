@@ -58,3 +58,11 @@ create policy "events_delete_all" on events for delete using (true);
 -- lecture seule depuis l'app. Les personnes sont ajoutées à la main par le
 -- propriétaire du projet via scripts/seed-people.sql (cf. Plan V1 — pas de
 -- formulaire d'inscription pour le v1).
+
+-- Realtime (postgres_changes) sur `events` : permet aux autres clients
+-- connectés de voir en direct les créations/modifications/suppressions
+-- faites par quelqu'un d'autre, sans recharger la page (cf.
+-- storage.js#subscribeToEvents). La policy events_select_all ci-dessus
+-- suffit à autoriser la lecture des changements diffusés — rien à ajouter
+-- côté RLS.
+alter publication supabase_realtime add table events;

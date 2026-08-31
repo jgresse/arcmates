@@ -1,7 +1,8 @@
 /* ---------------------------------------------------------
    3) RENDU D3 — axe VERTICAL unique + nœuds + arcs
    Dépend de data.js (people, events, allArcs, recomputeArcs,
-   color, typeColor, TYPE_EMOJIS, EVENT_TYPES, pickTitleForType).
+   applyRealtimeChange, color, typeColor, TYPE_EMOJIS, EVENT_TYPES,
+   pickTitleForType) et de storage.js (subscribeToEvents).
 
    Pivot (17/08) : la frise est passée à la verticale — le temps descend
    de haut en bas plutôt que de gauche à droite. Objectif : les titres
@@ -796,6 +797,16 @@ async function boot() {
   }
   renderPeopleUI();
   render();
+
+  // Temps réel : les créations/modifications/suppressions faites par un
+  // autre client (frise collaborative) apparaissent sans recharger la page.
+  // Reçoit aussi ses propres changements (cf. storage.js) — sans effet
+  // visible, applyRealtimeChange() est un upsert idempotent par id.
+  subscribeToEvents((change) => {
+    applyRealtimeChange(change);
+    recomputeArcs();
+    render();
+  });
 }
 
 // Bouton fermeture modal mobile

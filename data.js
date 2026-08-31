@@ -175,6 +175,32 @@ function recomputeArcs() {
   allArcs = people.flatMap(p => computeArcsForPerson(p));
 }
 
+/* ---------------------------------------------------------
+   4) TEMPS RÉEL — merge des changements Supabase Realtime
+   (cf. storage.js#subscribeToEvents). Upsert idempotent par id : réappliquer
+   un changement déjà présent (notamment le sien — on ne cherche pas à
+   filtrer sa propre origine) ne crée pas de doublon, juste un remplacement
+   par une valeur identique.
+--------------------------------------------------------- */
+
+// `eventsList` par défaut = `events` (même pattern que computeArcsForPerson) :
+// permet aux tests d'appeler cette fonction avec un tableau contrôlé, et à
+// chart.js de l'appeler sans argument pour merger dans le binding partagé
+// (recomputeArcs()/render() restent à la charge de l'appelant).
+function applyRealtimeChange(change, eventsList = events) {
+  let next;
+  if (change.eventType === "DELETE") {
+    next = eventsList.filter(e => e.id !== change.id);
+  } else {
+    const idx = eventsList.findIndex(e => e.id === change.event.id);
+    next = idx === -1
+      ? [...eventsList, change.event]
+      : eventsList.map((e, i) => i === idx ? change.event : e);
+  }
+  if (eventsList === events) events = next;
+  return next;
+}
+
 // Export CommonJS pour les tests unitaires Node (cf. tests/data.test.js) —
 // ignoré dans le navigateur (chargé en <script> classique, `module` n'existe
 // pas), donc aucun impact sur le comportement de l'app.
@@ -182,6 +208,6 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     TITLES_BY_TYPE, EVENT_TYPES, pickTitleForType,
     TYPE_COLORS, TYPE_EMOJIS, typeColor, AVATAR_EMOJIS,
-    computeArcsForPerson
+    computeArcsForPerson, applyRealtimeChange
   };
 }

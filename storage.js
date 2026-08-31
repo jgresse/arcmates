@@ -111,9 +111,47 @@ async function deleteEvent(id) {
   }
 }
 
+// --- Realtime : notifie l'app des créations/modifications/suppressions
+// faites par n'IMPORTE QUEL client (app collaborative, cf. CLAUDE.md), y
+// compris soi-même — sans ça, un changement fait par quelqu'un d'autre
+// n'apparaît qu'au rechargement de la page. Nécessite que `events` soit
+// ajoutée à la publication `supabase_realtime` côté base (cf.
+// scripts/2026-08-enable-realtime.sql) ; la policy RLS `events_select_all`
+// déjà en place suffit à autoriser la lecture des changements diffusés.
+
+// Conversion pure du payload Supabase Realtime vers le format attendu par
+// data.js#applyRealtimeChange, séparée de subscribeToEvents() pour rester
+// testable sans dépendre d'un vrai channel/websocket (cf. tests/storage.test.js).
+function payloadToChange(payload) {
+  if (payload.eventType === "DELETE") {
+    // Postgres ne renvoie que l'ancienne clé primaire sur un DELETE (REPLICA
+    // IDENTITY par défaut = "default", pas la ligne complète) — impossible
+    // de reconstruire un évènement complet, on ne renvoie que l'id à retirer.
+    return { eventType: "DELETE", id: payload.old.id };
+  }
+  return { eventType: payload.eventType, event: rowToEvent(payload.new) };
+}
+
+// `onChange` est rappelé pour chaque INSERT/UPDATE/DELETE, y compris ceux
+// déclenchés par ce client lui-même — on ne filtre pas l'origine, c'est
+// data.js#applyRealtimeChange (upsert idempotent par id) qui absorbe le
+// doublon sans effet visible.
+function subscribeToEvents(onChange) {
+  return supabaseClient
+    .channel("events-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "events" }, (payload) => {
+      onChange(payloadToChange(payload));
+    })
+    .subscribe();
+}
+
 // Export CommonJS pour les tests unitaires Node (cf. tests/storage.test.js) —
 // ignoré dans le navigateur (chargé en <script> classique, `module` n'existe
 // pas), donc aucun impact sur le comportement de l'app.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { toISODate, fromISODate, rowToEvent, eventToRow, listPeople, listEvents, createEvent, updateEvent, deleteEvent };
+  module.exports = {
+    toISODate, fromISODate, rowToEvent, eventToRow,
+    listPeople, listEvents, createEvent, updateEvent, deleteEvent,
+    payloadToChange, subscribeToEvents
+  };
 }

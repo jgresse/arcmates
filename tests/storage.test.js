@@ -5,7 +5,7 @@ global.d3 = require("d3");
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { toISODate, fromISODate, rowToEvent, eventToRow } = require("../storage.js");
+const { toISODate, fromISODate, rowToEvent, eventToRow, payloadToChange } = require("../storage.js");
 
 test("toISODate() / fromISODate() font un aller-retour fidèle", () => {
   const date = new Date(2024, 4, 1); // 1er mai 2024, en local
@@ -76,4 +76,24 @@ test("eventToRow() met null (pas undefined) pour les champs optionnels absents �
   assert.equal(row.date_fin, null);
   assert.equal(row.description, null);
   assert.equal(row.cree_par, null);
+});
+
+test("payloadToChange() convertit un INSERT/UPDATE Supabase Realtime en évènement JS (camelCase)", () => {
+  const payload = {
+    eventType: "INSERT",
+    new: {
+      id: "uuid-1", titre: "Shabbeut à l'Astoria", type: "Fête",
+      date_debut: "2024-05-01", date_fin: null,
+      personnes_taguees: ["p1"], description: null, cree_par: null
+    }
+  };
+  const change = payloadToChange(payload);
+  assert.equal(change.eventType, "INSERT");
+  assert.equal(change.event.id, "uuid-1");
+  assert.deepEqual(change.event.date, new Date(2024, 4, 1));
+});
+
+test("payloadToChange() sur un DELETE ne renvoie que l'id (Postgres ne renvoie pas la ligne complète)", () => {
+  const change = payloadToChange({ eventType: "DELETE", old: { id: "uuid-1" } });
+  assert.deepEqual(change, { eventType: "DELETE", id: "uuid-1" });
 });

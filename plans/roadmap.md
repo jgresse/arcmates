@@ -22,11 +22,18 @@
 
 ## Idée à évaluer (pas prioritaire)
 
-- [ ] **Temps réel Supabase** — `supabase.channel('events-changes').on('postgres_changes', ...)`
-      pour que les autres utilisateurs connectés voient un nouvel évènement
-      sans recharger. Peu coûteux à activer, mais pas fait : à activer
-      seulement si ça n'ajoute pas de complexité perçue trop grande — le
-      rechargement manuel fonctionne déjà très bien à cette échelle.
+- [ ] **Suppression restreinte à l'auteur** — n'autoriser la suppression d'un
+      évènement que par la personne qui l'a créé (aujourd'hui : ouverte à qui
+      a le lien, via la policy `events_delete_all`). Dépend de l'**Identité
+      déclarative** ci-dessus pour savoir qui est "l'utilisateur courant" —
+      `cree_par` existe déjà en base mais n'est jamais rempli. Point dur à
+      trancher : une vraie policy RLS `using (cree_par = ...)` ne peut pas se
+      fier à un id envoyé par un client anon non authentifié (n'importe qui
+      pourrait usurper n'importe quel `cree_par`) — donc soit une vraie auth
+      Supabase (magic link, déjà listé en "Hors périmètre v2+"), soit accepter
+      que ce ne soit qu'une contrainte d'UI (bouton masqué/désactivé si ce
+      n'est pas l'auteur déclaré), en sachant qu'elle reste contournable côté
+      client.
 
 ## Backlog (non bloquant, à revisiter si besoin)
 

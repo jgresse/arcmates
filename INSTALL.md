@@ -29,6 +29,14 @@ project → choisir une région → attendre la fin du provisioning, ~2 min.)
    pour la rattraper (les nouvelles installations n'ont pas besoin de cette
    étape, elle est déjà dans `schema.sql`).
 
+   ⚠️ Si tu avais déjà exécuté `schema.sql` **avant** l'ajout du temps réel,
+   ta base n'a pas encore `events` dans la publication Realtime — exécute une
+   fois [`scripts/2026-08-enable-realtime.sql`](scripts/2026-08-enable-realtime.sql)
+   pour la rattraper (les nouvelles installations n'ont pas besoin de cette
+   étape, elle est déjà dans `schema.sql`). Rien à activer côté dashboard :
+   c'est cette ligne SQL qui fait tout (équivalent au toggle "Realtime" du
+   Table Editor Supabase sur la table `events`).
+
 ## 3. Ajouter les personnes (seed-people.sql)
 
 1. Toujours dans le SQL Editor, **New query**.
@@ -81,6 +89,13 @@ nouveau nœud après un court instant (aller-retour réseau vers Supabase).
 En cas d'erreur, un bandeau apparaît en haut de l'écran (`#load-status`) —
 ouvrir la console du navigateur (F12) pour le détail de l'erreur Supabase
 (clé invalide, RLS mal configurée, etc.).
+
+Pour vérifier le temps réel : ouvrir `arc-diagram.html` dans deux onglets,
+créer/modifier/supprimer un évènement dans l'un, il doit apparaître dans
+l'autre après un court instant sans recharger la page. Si ça ne marche pas
+alors que la création fonctionne bien dans l'onglet d'origine, la cause la
+plus probable est `events` pas encore dans la publication Realtime — cf.
+l'avertissement de l'étape 2 ci-dessus.
 
 ### Purger les évènements de test
 

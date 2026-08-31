@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const {
   EVENT_TYPES, TITLES_BY_TYPE, pickTitleForType,
   TYPE_COLORS, TYPE_EMOJIS, typeColor,
-  AVATAR_EMOJIS, computeArcsForPerson
+  AVATAR_EMOJIS, computeArcsForPerson, applyRealtimeChange
 } = require("../data.js");
 
 test("EVENT_TYPES / TYPE_COLORS / TYPE_EMOJIS restent en phase", () => {
@@ -59,4 +59,36 @@ test("computeArcsForPerson() ne crée aucun arc s'il y a 0 ou 1 évènement", ()
   assert.equal(computeArcsForPerson(p, [
     { id: "e1", date: new Date(2020, 0, 1), personnesTaguees: ["p1"] }
   ]).length, 0);
+});
+
+test("applyRealtimeChange() ajoute un évènement créé par un autre client (INSERT)", () => {
+  const events = [{ id: "e1" }];
+  const inserted = { id: "e2", titre: "Nouveau" };
+  const next = applyRealtimeChange({ eventType: "INSERT", event: inserted }, events);
+  assert.equal(next.length, 2);
+  assert.deepEqual(next[1], inserted);
+});
+
+test("applyRealtimeChange() remplace un évènement existant (UPDATE)", () => {
+  const events = [{ id: "e1", titre: "Ancien titre" }, { id: "e2" }];
+  const updated = { id: "e1", titre: "Nouveau titre" };
+  const next = applyRealtimeChange({ eventType: "UPDATE", event: updated }, events);
+  assert.equal(next.length, 2);
+  assert.equal(next.find(e => e.id === "e1").titre, "Nouveau titre");
+});
+
+test("applyRealtimeChange() retire un évènement supprimé (DELETE)", () => {
+  const events = [{ id: "e1" }, { id: "e2" }];
+  const next = applyRealtimeChange({ eventType: "DELETE", id: "e1" }, events);
+  assert.deepEqual(next.map(e => e.id), ["e2"]);
+});
+
+test("applyRealtimeChange() est idempotent : réappliquer son propre changement ne crée pas de doublon", () => {
+  // Cas réel : ce même client vient de créer l'évènement (push optimiste
+  // local dans chart.js), puis reçoit l'écho de son propre INSERT via le
+  // channel Realtime (cf. storage.js#subscribeToEvents, qui ne filtre pas
+  // l'origine du changement).
+  const created = { id: "e1", titre: "Shabbeut" };
+  const next = applyRealtimeChange({ eventType: "INSERT", event: created }, [created]);
+  assert.equal(next.length, 1);
 });
