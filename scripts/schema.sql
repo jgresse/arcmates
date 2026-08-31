@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------
--- Frise chronolobbeutique — schéma Supabase (Plan V1, Phase B)
+-- Arcmates — schéma Supabase
 -- À exécuter une fois dans Supabase : Dashboard > SQL Editor > New query,
 -- coller ce fichier en entier, "Run". Cf. INSTALL.md pour le contexte.
 -- ---------------------------------------------------------------------

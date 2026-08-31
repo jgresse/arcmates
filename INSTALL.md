@@ -1,4 +1,4 @@
-# Guide d'installation — Frise chronolobbeutique (v1, Supabase)
+# Guide d'installation — Arcmates (Supabase)
 
 Ce guide couvre la mise en route de la persistance Supabase. Le reste (D3,
 zoom, panneau) fonctionne déjà tel quel, sans build ni dépendance —
@@ -111,11 +111,11 @@ régression sur le calcul des arcs ou le mapping Supabase.
 
 Le site est 100% statique (pas de build), donc GitHub Pages suffit :
 
-1. Sur le repo GitHub ([jgresse/rbbt-rcu](https://github.com/jgresse/rbbt-rcu))
+1. Sur le repo GitHub ([jgresse/arcmates](https://github.com/jgresse/arcmates))
    → **Settings** → **Pages**.
 2. **Source** : `Deploy from a branch`, branche `main`, dossier `/ (root)`.
 3. **Save**. L'URL de déploiement apparaît en haut de la page quelques
-   minutes après (format `https://jgresse.github.io/rbbt-rcu/`).
+   minutes après (format `https://jgresse.github.io/arcmates/`).
 4. Ouvrir `arc-diagram.html` via cette URL une fois déployé — c'est le lien
    à partager avec la rabbeutique.
 

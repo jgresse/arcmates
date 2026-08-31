@@ -1,4 +1,4 @@
-# Frise chronolobbeutique
+# Arcmates
 
 Frise chronologique verticale, collaborative, pour la communauté rabbeutique :
 chacun peut consulter et ajouter les évènements qui ont marqué son histoire
@@ -6,9 +6,8 @@ commune. Rendu en arc diagram avec [D3.js](https://d3js.org/) — un tronc
 temporel vertical, les évènements de chaque personne reliés entre eux par des
 arcs de couleur, à la manière d'un arbre de vie.
 
-Contexte, décisions et plan détaillé : voir les notes du projet dans le vault
-Obsidian (`Frise chronolobbeutique - Concept.md` et
-`Frise chronolobbeutique - Plan V1.md`).
+Contexte et décisions produit : voir `Arcmates - Concept.md` dans le vault
+Obsidian. Features à implémenter et idées : [`plans/roadmap.md`](plans/roadmap.md).
 
 ## Stack
 

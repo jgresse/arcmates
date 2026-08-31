@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Frise chronologique verticale, collaborative (arc diagram) rendue avec D3.js.
+**Arcmates** — frise chronologique verticale, collaborative (arc diagram) rendue avec D3.js.
 Chaque personne a ses évènements reliés par des arcs de couleur le long d'un
 tronc temporel. Pas de build/bundler : `arc-diagram.html` charge D3 et le SDK
 Supabase (CDN), puis `data.js`, `storage.js`, `chart.js` en `<script>`
@@ -92,6 +92,6 @@ migration ponctuelle sur une base déjà créée va dans un fichier séparé sou
 `scripts/` (voir `scripts/2024-08-add-delete-policy.sql` comme modèle) plutôt
 que d'éditer `schema.sql` rétroactivement.
 
-Contexte et décisions produit détaillées : notes du projet dans le vault
-Obsidian (`Frise chronolobbeutique - Concept.md` et
-`Frise chronolobbeutique - Plan V1.md`) — pas versionnées dans ce repo.
+Contexte et décisions produit détaillées : `Arcmates - Concept.md` dans le
+vault Obsidian (pas versionné dans ce repo). Features à implémenter et idées
+non creusées : [`plans/roadmap.md`](plans/roadmap.md), versionné ici.

@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------
--- Frise chronolobbeutique — purge des évènements de test
+-- Arcmates — purge des évènements de test
 -- À exécuter dans le SQL Editor Supabase quand tu veux repartir d'une
 -- frise vide (après une session de tests par exemple), SANS toucher à la
 -- table `people` (les personnes du seed restent en place).

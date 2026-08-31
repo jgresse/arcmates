@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------
--- Frise chronolobbeutique — seed des personnes (Plan V1, Phase B)
+-- Arcmates — seed des personnes
 -- À exécuter APRÈS schema.sql, dans le même SQL Editor Supabase.
 --
 -- La table `people` est en lecture seule depuis l'app (pas de policy

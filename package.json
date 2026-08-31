@@ -1,7 +1,7 @@
 {
-  "name": "rbbt-rcu",
+  "name": "arcmates",
   "private": true,
-  "description": "Frise chronolobbeutique — pas de build/bundler : ce package.json sert aux tests unitaires (node --test) et à leurs dépendances (d3, jsdom), plus aux tests e2e Playwright (navigation dans un vrai navigateur). L'app elle-même reste du JS vanilla chargé en <script> classiques, cf. arc-diagram.html.",
+  "description": "Arcmates — pas de build/bundler : ce package.json sert aux tests unitaires (node --test) et à leurs dépendances (d3, jsdom), plus aux tests e2e Playwright (navigation dans un vrai navigateur). L'app elle-même reste du JS vanilla chargé en <script> classiques, cf. arc-diagram.html.",
   "scripts": {
     "test": "node --test",
     "test:e2e": "playwright test"
