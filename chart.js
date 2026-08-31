@@ -1,8 +1,8 @@
 /* ---------------------------------------------------------
    3) RENDU D3 — axe VERTICAL unique + nœuds + arcs
    Dépend de data.js (people, events, allArcs, recomputeArcs,
-   applyRealtimeChange, color, typeColor, TYPE_EMOJIS, EVENT_TYPES,
-   pickTitleForType) et de storage.js (subscribeToEvents).
+   applyRealtimeChange, color, typeColor, TYPE_EMOJIS, EVENT_TYPES)
+   et de storage.js (subscribeToEvents).
 
    Pivot (17/08) : la frise est passée à la verticale — le temps descend
    de haut en bas plutôt que de gauche à droite. Objectif : les titres
@@ -697,7 +697,11 @@ function hideStatus() {
 
 d3.select("#add-submit").on("click", async () => {
   const type = addType.value;
-  const titre = addTitre.value.trim() || pickTitleForType(type);
+  const titre = addTitre.value.trim();
+  if (!titre) {
+    showStatus("Erreur : le titre est obligatoire.", true);
+    return;
+  }
   const personnesTaguees = Array.from(addPersonnesList.querySelectorAll("input:checked")).map(el => el.value);
   const date = addDate.value ? new Date(addDate.value + "T00:00:00") : pendingDate;
   const dateFin = addDateFin.value ? new Date(addDateFin.value + "T00:00:00") : undefined;

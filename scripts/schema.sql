@@ -16,7 +16,7 @@ create table events (
   id uuid primary key default gen_random_uuid(),
   titre text not null,
   type text not null check (type in (
-    'Marqueur rabbeutique', 'Fête', 'Première rencontre',
+    'Fête / Anniversaire', 'Rencontre / Retrouvaille',
     'Déménagement', 'Voyage', 'Concert'
   )),
   date_debut date not null,

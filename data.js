@@ -11,80 +11,25 @@
    couleur/avatar/côté d'affichage une fois qu'on connaît leur nombre réel.
 --------------------------------------------------------- */
 
-// Titres piochés/inspirés du Dico et des Tomes, groupés par type d'évènement
-// (types codés en dur pour le MVP, cf. plan).
-const TITLES_BY_TYPE = {
-  "Marqueur rabbeutique": [
-    "Réception des tablettes du Mont Canigag",
-    "Élection Grand Rabbeut",
-    "Passage Talibbeut",
-    "Premier Signe de croix rabbeut",
-    "Titre de Mouillettologue",
-    "Initiation aux Francs Moussons",
-    "Sacre Grand Rabbeut de France"
-  ],
-  "Fête": [
-    "Shabbeut à l'Astoria",
-    "Grand Shabbeut du Bud & Breakfast",
-    "Viandredi chez Butch",
-    "Solstice & Saint Fiacre",
-    "Shabbeut au Kanterbrau",
-    "Synagag plénière",
-    "High Mousse au Quiquimousse"
-  ],
-  "Première rencontre": [
-    "Rencontre à l'Astoria",
-    "Présentation par un Rabbeuteur",
-    "Croisement au Bud & Breakfast",
-    "Rencontre pendant un Shabbeut",
-    "Rencontre au Molzhenbek"
-  ],
-  "Déménagement": [
-    "Emménagement au Molzhenbek",
-    "Installation du Caisson hyperbarge",
-    "Départ de la Jerk-Station",
-    "Nouvelle colocation rabbeutique"
-  ],
-  "Voyage": [
-    "Le Mexperience",
-    "Pèlerinage au Mont Canigag",
-    "Retraite shabanique",
-    "Grand Carême à l'étranger",
-    "Expédition Endurhum"
-  ],
-  "Concert": [
-    "Concert Kamran",
-    "Messe hardcore Panterabbeut",
-    "Concert Nulle Part Ailleurs",
-    "Kamran à Venelles"
-  ]
-};
-
-const EVENT_TYPES = Object.keys(TITLES_BY_TYPE);
-
-function pickTitleForType(type) {
-  const pool = TITLES_BY_TYPE[type];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
+// Types d'évènements codés en dur pour le MVP (cf. plan).
+const EVENT_TYPES = ["Fête / Anniversaire", "Rencontre / Retrouvaille", "Déménagement", "Voyage", "Concert"];
 
 // Couleur fixe par type d'évènement (indépendante des couleurs par personne,
 // qui elles restent réservées aux arcs) — c'est ce qui colore les nœuds.
-// Palette validée (skill dataviz), colonne DARK (les 6 slots ont chacun une
+// Palette validée (skill dataviz), colonne DARK (les slots ont chacun une
 // marche claire/sombre pré-validée pour le contraste selon la surface —
 // la carte est maintenant sombre, donc on prend la marche prévue pour ça
 // plutôt que la version "light" utilisée avant le passage en dark mode).
 const TYPE_COLORS = {
-  "Marqueur rabbeutique": "#3987e5", // slot 1 — bleu (dark)
-  "Fête": "#d95926",                 // slot 2 — orange (dark)
-  "Première rencontre": "#199e70",   // slot 3 — aqua (dark)
+  "Fête / Anniversaire": "#d95926",     // slot 2 — orange (dark)
+  "Rencontre / Retrouvaille": "#199e70", // slot 3 — aqua (dark)
   "Déménagement": "#c98500",         // slot 4 — jaune (dark)
   "Voyage": "#d55181",               // slot 5 — magenta (dark)
   "Concert": "#22b022"               // slot 6 — vert, éclairci pour rester visible sur fond quasi-noir
 };
 const TYPE_EMOJIS = {
-  "Marqueur rabbeutique": "⭐",
-  "Fête": "🎉",
-  "Première rencontre": "🤝",
+  "Fête / Anniversaire": "🎉",
+  "Rencontre / Retrouvaille": "🤝",
   "Déménagement": "📦",
   "Voyage": "✈️",
   "Concert": "🎤"
@@ -206,7 +151,7 @@ function applyRealtimeChange(change, eventsList = events) {
 // pas), donc aucun impact sur le comportement de l'app.
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    TITLES_BY_TYPE, EVENT_TYPES, pickTitleForType,
+    EVENT_TYPES,
     TYPE_COLORS, TYPE_EMOJIS, typeColor, AVATAR_EMOJIS,
     computeArcsForPerson, applyRealtimeChange
   };

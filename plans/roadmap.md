@@ -59,6 +59,12 @@
 - [ ] Vue "aujourd'hui il y a X ans" — met en avant les évènements dont
       c'est l'anniversaire, façon "souvenirs".
 - [ ] Commentaires sur un évènement (qui se souvient de quoi).
+- [ ] Types d'évènements en table Supabase plutôt que codés en dur dans
+      `data.js` (`EVENT_TYPES`/`TYPE_COLORS`/`TYPE_EMOJIS`) — permettrait
+      d'ajouter/renommer un type sans déploiement, et prépare la gestion en
+      UI listée sous "Hors périmètre actuel". Implique une migration du
+      CHECK constraint `events.type` vers une clé étrangère, et de charger
+      la liste au boot comme `people`/`events` aujourd'hui.
 
 ## Hors périmètre actuel (v2+)
 

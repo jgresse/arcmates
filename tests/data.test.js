@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const {
-  EVENT_TYPES, TITLES_BY_TYPE, pickTitleForType,
+  EVENT_TYPES,
   TYPE_COLORS, TYPE_EMOJIS, typeColor,
   AVATAR_EMOJIS, computeArcsForPerson, applyRealtimeChange
 } = require("../data.js");
@@ -13,21 +13,12 @@ test("EVENT_TYPES / TYPE_COLORS / TYPE_EMOJIS restent en phase", () => {
   for (const type of EVENT_TYPES) {
     assert.ok(TYPE_COLORS[type], `TYPE_COLORS manque une entrée pour "${type}"`);
     assert.ok(TYPE_EMOJIS[type], `TYPE_EMOJIS manque une entrée pour "${type}"`);
-    assert.ok(TITLES_BY_TYPE[type]?.length > 0, `TITLES_BY_TYPE manque des titres pour "${type}"`);
   }
 });
 
 test("typeColor() renvoie une couleur de secours pour un type inconnu", () => {
   assert.equal(typeColor("Type qui n'existe pas"), "#999");
-  assert.equal(typeColor("Fête"), TYPE_COLORS["Fête"]);
-});
-
-test("pickTitleForType() pioche toujours dans le bon pool", () => {
-  for (const type of EVENT_TYPES) {
-    for (let i = 0; i < 20; i++) {
-      assert.ok(TITLES_BY_TYPE[type].includes(pickTitleForType(type)));
-    }
-  }
+  assert.equal(typeColor("Fête / Anniversaire"), TYPE_COLORS["Fête / Anniversaire"]);
 });
 
 test("AVATAR_EMOJIS n'a pas de doublons", () => {
