@@ -720,7 +720,7 @@ d3.select("#add-submit").on("click", async () => {
     } else {
       // Création : l'id (uuid) est généré par Postgres, pas côté client —
       // on pousse la ligne renvoyée par Supabase dans le tableau local.
-      const created = await createEvent({ titre, type, date, dateFin, personnesTaguees, description });
+      const created = await createEvent({ titre, type, date, dateFin, personnesTaguees, description, creePar: getCurrentPersonId() });
       events.push(created);
     }
 
@@ -785,6 +785,143 @@ function renderPeopleUI() {
     });
 }
 
+/* ---------------------------------------------------------
+   IDENTITÉ DÉCLARATIVE — écran "qui es-tu" au premier chargement +
+   formulaire personne (complétion de profil / création). Pas d'auth réelle
+   (cf. plans/roadmap.md) : juste un id de personne mémorisé en local pour
+   préremplir `cree_par` et son propre filtre.
+--------------------------------------------------------- */
+
+const PERSON_ID_STORAGE_KEY = "arcmates:personId";
+function getCurrentPersonId() {
+  return localStorage.getItem(PERSON_ID_STORAGE_KEY);
+}
+function setCurrentPersonId(id) {
+  localStorage.setItem(PERSON_ID_STORAGE_KEY, id);
+}
+
+const whoAreYouModal = document.getElementById("whoareyou-modal");
+const whoAreYouList = document.getElementById("whoareyou-list");
+const whoAreYouNotInList = document.getElementById("whoareyou-not-in-list");
+
+const personModal = document.getElementById("person-modal");
+const personModalTitle = document.getElementById("person-modal-title");
+const personHint = document.getElementById("person-hint");
+const personNom = document.getElementById("person-nom");
+const personSurnoms = document.getElementById("person-surnoms");
+const personEmoji = document.getElementById("person-emoji");
+const personEmail = document.getElementById("person-email");
+const personSubmitBtn = document.getElementById("person-submit");
+
+// null = création ; sinon id de la personne dont on complète le profil.
+let editingPersonId = null;
+// true si une création réussie doit aussi devenir l'identité courante
+// (repli "je ne suis pas dans la liste" du flux "qui es-tu") — false pour
+// le bouton sidebar (on ajoute quelqu'un d'autre, pas soi-même).
+let linkToCurrentIdentity = false;
+
+function openPersonPanelForCompletion(person) {
+  editingPersonId = person.id;
+  linkToCurrentIdentity = false;
+  personModalTitle.textContent = "Complète ton profil";
+  personHint.textContent = "Un email pour te retrouver plus facilement (utile plus tard pour la connexion) — tu peux annuler, on te la redemandera à la prochaine visite.";
+  personNom.value = person.nom;
+  personNom.disabled = true;
+  personSurnoms.value = (person.surnoms || []).join(", ");
+  personEmoji.value = person.emoji || "";
+  personEmail.value = "";
+  personSubmitBtn.textContent = "Enregistrer";
+  personModal.classList.remove("hidden");
+}
+
+function openPersonPanelForCreation(linkIdentity) {
+  editingPersonId = null;
+  linkToCurrentIdentity = linkIdentity;
+  personModalTitle.textContent = "Ajouter une personne";
+  personHint.textContent = "";
+  personNom.value = "";
+  personNom.disabled = false;
+  personSurnoms.value = "";
+  personEmoji.value = "";
+  personEmail.value = "";
+  personSubmitBtn.textContent = "Ajouter";
+  personModal.classList.remove("hidden");
+  personNom.focus();
+}
+
+function closePersonModal() {
+  personModal.classList.add("hidden");
+  editingPersonId = null;
+  linkToCurrentIdentity = false;
+}
+
+function selectIdentity(person) {
+  setCurrentPersonId(person.id);
+  whoAreYouModal.classList.add("hidden");
+  if (needsProfileCompletion(person)) {
+    openPersonPanelForCompletion(person);
+  }
+}
+
+function renderWhoAreYouList() {
+  d3.select(whoAreYouList).selectAll("li")
+    .data(people)
+    .join("li")
+    .attr("class", "legend-item")
+    .html(d => `<span class="legend-avatar">${d.avatar}</span>${d.nom}`)
+    .on("click", (event, d) => selectIdentity(d));
+}
+
+// Appelée une fois au boot : affiche "qui es-tu" si aucune identité locale
+// valide n'est connue — soit rien n'a jamais été choisi, soit la personne
+// choisie a depuis disparu de `people` (supprimée entretemps).
+function showWhoAreYouIfNeeded() {
+  if (!needsIdentitySelection(getCurrentPersonId())) return;
+  renderWhoAreYouList();
+  whoAreYouModal.classList.remove("hidden");
+}
+
+whoAreYouNotInList.addEventListener("click", () => openPersonPanelForCreation(true));
+document.getElementById("add-person-btn").addEventListener("click", () => openPersonPanelForCreation(false));
+document.getElementById("person-modal-close").addEventListener("click", closePersonModal);
+document.getElementById("person-cancel").addEventListener("click", closePersonModal);
+
+d3.select("#person-submit").on("click", async () => {
+  const nom = personNom.value.trim();
+  if (!nom) {
+    showStatus("Erreur : le nom est obligatoire.", true);
+    return;
+  }
+  const surnoms = personSurnoms.value.split(",").map(s => s.trim()).filter(Boolean);
+  const emoji = personEmoji.value.trim() || undefined;
+  const email = personEmail.value.trim() || undefined;
+
+  personSubmitBtn.disabled = true;
+  try {
+    const person = editingPersonId
+      ? await updatePerson(editingPersonId, { nom, surnoms, emoji, email })
+      : await createPerson({ nom, surnoms, emoji, email }); // déclenche la notification admin côté base (cf. plans/roadmap.md)
+
+    // Recharge toute la liste plutôt que de pousser juste la nouvelle ligne :
+    // la palette de couleurs (buildPeople) est dimensionnée sur le nombre
+    // total de personnes, donc un simple push la laisserait incohérente.
+    const rawPeople = await listPeople();
+    ({ people, color } = buildPeople(rawPeople));
+    renderPeopleUI();
+
+    if (linkToCurrentIdentity) setCurrentPersonId(person.id);
+
+    closePersonModal();
+    whoAreYouModal.classList.add("hidden");
+    hideStatus();
+  } catch (err) {
+    console.error(err);
+    showStatus("Erreur : l'enregistrement a échoué, réessaie.", true);
+  } finally {
+    personSubmitBtn.disabled = false;
+  }
+});
+
 // Démarrage : on attend le chargement Supabase (personnes + évènements)
 // avant de peupler la légende/le panneau et de lancer le premier render() —
 // tout le reste du fichier (setup D3, zoom, panneau) est indépendant des
@@ -800,6 +937,7 @@ async function boot() {
     return;
   }
   renderPeopleUI();
+  showWhoAreYouIfNeeded();
   render();
 
   // Temps réel : les créations/modifications/suppressions faites par un

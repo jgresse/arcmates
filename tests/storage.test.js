@@ -5,7 +5,10 @@ global.d3 = require("d3");
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { toISODate, fromISODate, rowToEvent, eventToRow, payloadToChange } = require("../storage.js");
+const {
+  toISODate, fromISODate, rowToEvent, eventToRow, payloadToChange,
+  rowToPerson, personToRow
+} = require("../storage.js");
 
 test("toISODate() / fromISODate() font un aller-retour fidèle", () => {
   const date = new Date(2024, 4, 1); // 1er mai 2024, en local
@@ -96,4 +99,31 @@ test("payloadToChange() convertit un INSERT/UPDATE Supabase Realtime en évènem
 test("payloadToChange() sur un DELETE ne renvoie que l'id (Postgres ne renvoie pas la ligne complète)", () => {
   const change = payloadToChange({ eventType: "DELETE", old: { id: "uuid-1" } });
   assert.deepEqual(change, { eventType: "DELETE", id: "uuid-1" });
+});
+
+test("rowToPerson() convertit une ligne Supabase (snake_case) en personne JS (camelCase)", () => {
+  const row = { id: "p1", nom: "Greg", surnoms: ["Grég"], emoji: "🍺", email: "greg@mail.com" };
+  const person = rowToPerson(row);
+  assert.deepEqual(person, { id: "p1", nom: "Greg", surnoms: ["Grég"], emoji: "🍺", email: "greg@mail.com" });
+});
+
+test("rowToPerson() gère les champs optionnels absents (pas de surnoms/emoji/email)", () => {
+  const person = rowToPerson({ id: "p1", nom: "Greg", surnoms: null, emoji: null, email: null });
+  assert.deepEqual(person.surnoms, []);
+  assert.equal(person.emoji, undefined);
+  assert.equal(person.email, undefined);
+});
+
+test("personToRow() convertit une personne JS en ligne Supabase, et est l'inverse de rowToPerson()", () => {
+  const original = { nom: "Greg", surnoms: ["Grég"], emoji: "🍺", email: "greg@mail.com" };
+  const row = personToRow(original);
+  assert.deepEqual(row, { nom: "Greg", surnoms: ["Grég"], emoji: "🍺", email: "greg@mail.com" });
+
+  const roundTripped = rowToPerson({ id: "p1", ...row });
+  assert.deepEqual(roundTripped, { id: "p1", ...original });
+});
+
+test("personToRow() met null (pas undefined) pour les champs optionnels absents — important pour Supabase", () => {
+  const row = personToRow({ nom: "Nouveau" });
+  assert.deepEqual(row, { nom: "Nouveau", surnoms: [], emoji: null, email: null });
 });

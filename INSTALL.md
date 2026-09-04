@@ -20,8 +20,12 @@ project → choisir une région → attendre la fin du provisioning, ~2 min.)
 3. **Run**. Ça crée les tables `people` et `events`, un trigger qui met à
    jour `modifie_le` automatiquement, et active la Row Level Security (RLS)
    avec les policies décrites dans le plan (lecture publique sur les deux
-   tables, écriture/suppression publique sur `events` uniquement — `people`
-   reste en lecture seule depuis l'app).
+   tables, écriture/suppression publique sur `events`).
+
+   ⚠️ Exécute aussi [`scripts/2026-09-add-person-email-and-write-policies.sql`](scripts/2026-09-add-person-email-and-write-policies.sql)
+   (colonne `email` + écriture ouverte sur `people`, pour l'écran "qui es-tu"
+   et l'ajout de personne depuis la sidebar — avant cette migration, `people`
+   était en lecture seule depuis l'app).
 
    ⚠️ Si tu avais déjà exécuté `schema.sql` **avant** l'ajout de la
    suppression d'évènement, ta base n'a pas encore la policy de delete —
@@ -50,6 +54,11 @@ project → choisir une région → attendre la fin du provisioning, ~2 min.)
    ```
 
    suffit, exécuté à la volée dans le SQL Editor.
+
+   Ce n'est plus la seule façon d'ajouter quelqu'un : le bouton "+ Ajouter
+   une personne" dans la sidebar de l'app fait la même chose depuis
+   l'interface (cf. étape 8 pour la notification email qui accompagne ces
+   créations).
 
 ## 4. Brancher la clé dans le code
 
@@ -122,7 +131,50 @@ que `tests/*.test.js` puisse les `require()`. À faire à chaque modif de
 `data.js`/`storage.js`/`chart.js` avant de commit, pour attraper vite une
 régression sur le calcul des arcs ou le mapping Supabase.
 
-## 7. Déployer (GitHub Pages)
+## 8. Notification email à l'admin (ajout de personne)
+
+Pas de validation admin bloquante sur l'ajout d'une personne (décision
+produit, cf. `plans/roadmap.md`) — à la place, un email t'est envoyé à
+chaque création, via une Edge Function déclenchée par un Database Webhook
+côté base (pas depuis le JS du client — cf. le commentaire en tête de
+[`supabase/functions/notify-new-person/index.ts`](supabase/functions/notify-new-person/index.ts)
+pour le pourquoi). Ces étapes sont manuelles, rien n'est automatisable par
+du code versionné :
+
+Tout se fait depuis le dashboard web, pas besoin d'installer le CLI Supabase :
+
+1. Créer un compte sur [resend.com](https://resend.com) (offre gratuite
+   largement suffisante pour ce volume) et récupérer une clé API.
+2. Dashboard Supabase → **Edge Functions** → **Deploy a new function** (ou
+   **Create function**). Nommer la fonction exactement `notify-new-person`
+   (ce nom se retrouve dans l'URL finale). Dans l'éditeur de code qui
+   s'ouvre, remplacer tout le contenu par celui de
+   [`supabase/functions/notify-new-person/index.ts`](supabase/functions/notify-new-person/index.ts),
+   puis **Deploy**.
+3. La page de la fonction affiche son URL une fois déployée, format
+   `https://<projet>.supabase.co/functions/v1/notify-new-person`.
+4. Choisir un secret partagé arbitraire (ex. une longue chaîne aléatoire) et
+   renseigner les 3 secrets dans **Edge Functions → Secrets** (ou **Manage
+   secrets**) : `RESEND_API_KEY`, `ADMIN_EMAIL`, `WEBHOOK_SECRET`.
+   ⚠️ Contrairement à la clé `anon` (§ 4), ces valeurs sont de vrais
+   secrets : `RESEND_API_KEY` permettrait à qui l'obtiendrait d'envoyer des
+   emails arbitraires depuis ton compte Resend. Elles ne doivent **jamais**
+   apparaître dans un fichier chargé par le navigateur (`storage.js` &
+   compagnie) — uniquement ici, côté secrets serveur.
+5. Déclencher l'appel à la fonction à chaque nouvelle personne : exécuter
+   [`scripts/2026-09-notify-admin-new-person-trigger.sql`](scripts/2026-09-notify-admin-new-person-trigger.sql)
+   dans le SQL Editor — un trigger Postgres qui appelle la fonction via
+   l'extension `pg_net` à chaque `INSERT` sur `people` (équivalent à un
+   "Database Webhook", absent du menu Database de certains dashboards —
+   celui-ci ne dépend d'aucune entrée de menu particulière). Remplacer
+   `<TON_WEBHOOK_SECRET>` dans le script par la vraie valeur choisie à
+   l'étape 4 avant de l'exécuter.
+6. Vérification : créer une personne de test depuis l'app (bouton sidebar),
+   confirmer la réception de l'email. Pas de test automatisé pour ce point
+   (effet de bord réel = envoi d'un vrai email, hors périmètre de
+   `node --test`/Playwright).
+
+## 9. Déployer (GitHub Pages)
 
 Le site est 100% statique (pas de build), donc GitHub Pages suffit :
 

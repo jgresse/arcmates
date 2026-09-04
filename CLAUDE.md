@@ -62,9 +62,12 @@ au niveau global (pas d'imports ES) :
    ses évènements par date et relie chaque paire consécutive par un arc).
 2. **`storage.js`** — seul point de contact avec Supabase. Fait le pont entre
    le modèle JS (camelCase, objets `Date`) et les colonnes SQL (snake_case,
-   dates ISO string) via `rowToEvent`/`eventToRow`. `people` est en lecture
-   seule depuis l'app (pas de policy insert/update — ajout à la main via
-   `scripts/seed-people.sql`) ; `events` a du CRUD complet.
+   dates ISO string) via `rowToEvent`/`eventToRow` (évènements) et
+   `rowToPerson`/`personToRow` (personnes). `people` et `events` ont tous
+   les deux du CRUD complet côté client (cf.
+   `scripts/2026-09-add-person-email-and-write-policies.sql` — avant cette
+   migration, `people` était en lecture seule depuis l'app, ajout à la main
+   uniquement via `scripts/seed-people.sql`).
    `deleteEvent` vérifie explicitement que la ligne supprimée est retournée
    par Postgres — un DELETE bloqué par une policy RLS manquante ne renvoie
    aucune erreur, juste 0 ligne affectée, donc l'absence de cette vérif
@@ -76,6 +79,16 @@ au niveau global (pas d'imports ES) :
    changements de filtre. Sur mobile (`isMobile()`, ≤768px), le panneau
    d'ajout/édition (`#add-panel`) est déplacé dans une modal full-screen
    (`openMobileModal`/`closeMobileModal`) plutôt qu'affiché dans la sidebar.
+   `boot()` affiche aussi, si besoin, l'écran "qui es-tu"
+   (`showWhoAreYouIfNeeded`) : identité locale stockée dans `localStorage`
+   (pas une vraie auth, cf. `plans/roadmap.md`), avec complétion de profil
+   automatique si la personne choisie n'a pas d'email (`needsProfileCompletion`
+   dans `data.js`). Ajouter une personne (depuis ce flux, ou le bouton sidebar
+   `#add-person-btn`) est immédiat, sans validation admin — une Edge Function
+   (`supabase/functions/notify-new-person/`), déclenchée par un Database
+   Webhook Postgres sur `INSERT people` (pas par le front, pour ne pas être
+   contournable), envoie un email à l'admin à chaque création. Setup manuel
+   de cette fonction : `INSTALL.md` § 8.
 
 Les trois fichiers partagent des variables globales (`people`, `events`,
 `allArcs`, `color`, etc. déclarées dans `data.js`) plutôt que d'être

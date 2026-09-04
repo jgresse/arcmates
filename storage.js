@@ -61,14 +61,55 @@ function eventToRow(evt) {
   };
 }
 
-// people : lecture seule depuis l'app (cf. Plan V1 Phase B — pas de policy
-// insert/update sur cette table, les personnes sont ajoutées à la main via
-// scripts/seed-people.sql). La couleur/l'avatar/le "side" restent calculés
-// côté client dans data.js, pas stockés en base.
+// people : écriture ouverte depuis l'app (cf.
+// scripts/2026-09-add-person-email-and-write-policies.sql — avant cette
+// migration, la table était en lecture seule, ajout à la main uniquement
+// via scripts/seed-people.sql). La couleur/l'avatar/le "side" restent
+// calculés côté client dans data.js, pas stockés en base.
+function rowToPerson(row) {
+  return {
+    id: row.id,
+    nom: row.nom,
+    surnoms: row.surnoms || [],
+    emoji: row.emoji || undefined,
+    email: row.email || undefined
+  };
+}
+
+function personToRow(person) {
+  return {
+    nom: person.nom,
+    surnoms: person.surnoms || [],
+    emoji: person.emoji || null,
+    email: person.email || null
+  };
+}
+
 async function listPeople() {
   const { data, error } = await supabaseClient.from("people").select("*").order("nom");
   if (error) throw error;
-  return data.map(row => ({ id: row.id, nom: row.nom, emoji: row.emoji }));
+  return data.map(rowToPerson);
+}
+
+async function createPerson(person) {
+  const { data, error } = await supabaseClient
+    .from("people")
+    .insert(personToRow(person))
+    .select()
+    .single();
+  if (error) throw error;
+  return rowToPerson(data);
+}
+
+async function updatePerson(id, person) {
+  const { data, error } = await supabaseClient
+    .from("people")
+    .update(personToRow(person))
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return rowToPerson(data);
 }
 
 async function listEvents() {
@@ -151,7 +192,9 @@ function subscribeToEvents(onChange) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     toISODate, fromISODate, rowToEvent, eventToRow,
+    rowToPerson, personToRow,
     listPeople, listEvents, createEvent, updateEvent, deleteEvent,
+    createPerson, updatePerson,
     payloadToChange, subscribeToEvents
   };
 }

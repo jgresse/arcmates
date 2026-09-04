@@ -2,10 +2,12 @@
 -- Arcmates — seed des personnes
 -- À exécuter APRÈS schema.sql, dans le même SQL Editor Supabase.
 --
--- La table `people` est en lecture seule depuis l'app (pas de policy
--- insert/update) : c'est toi qui gères la liste ici, à la main, et qui
--- ré-exécutes ce script (ou des `insert` ponctuels) à chaque nouvel arrivant
--- dans la rabbeutique.
+-- Sert au seed initial (première mise en route, cf. INSTALL.md). Une fois
+-- l'app en route, ajouter quelqu'un peut aussi se faire depuis l'interface
+-- (bouton "+ Ajouter une personne" dans la sidebar) — `people` n'est plus en
+-- lecture seule depuis l'app (cf.
+-- scripts/2026-09-add-person-email-and-write-policies.sql). Ce script reste
+-- utile pour un import en masse ou pour repartir d'une liste propre.
 --
 -- `emoji` sert d'avatar dans la frise ; laisse NULL pour qu'un avatar par
 -- défaut soit pioché automatiquement côté client (cf. AVATAR_EMOJIS dans

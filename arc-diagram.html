@@ -30,6 +30,7 @@
     <div id="legend-wrap">
       <p class="legend-hint">Cliquer sur une personne pour filtrer la frise sur ses arcs (re-cliquer pour désélectionner) :</p>
       <ul id="legend" class="legend-list"></ul>
+      <button id="add-person-btn" class="add-person-btn">+ Ajouter une personne</button>
     </div>
     <div id="legend-types-wrap">
       <p class="legend-hint">Cliquer sur un type d'évènement pour filtrer les nœuds correspondants :</p>
@@ -78,6 +79,49 @@
       <button id="mobile-modal-close">✕</button>
     </div>
     <!-- #add-panel sera déplacé ici via JS sur mobile -->
+  </div>
+</div>
+
+<!-- Écran "Qui es-tu ?" au premier chargement (pas de bouton fermer sans
+     choisir — cf. plans/roadmap.md "Identité déclarative"). -->
+<div id="whoareyou-modal" class="app-modal hidden">
+  <div class="app-modal-inner">
+    <h2 class="app-modal-title">Qui es-tu ?</h2>
+    <p class="add-date-hint">Choisis-toi dans la liste pour préremplir tes évènements et retrouver ton filtre.</p>
+    <ul id="whoareyou-list" class="legend-list whoareyou-list"></ul>
+    <button id="whoareyou-not-in-list" class="link-button">Je ne suis pas dans la liste</button>
+  </div>
+</div>
+
+<!-- Formulaire personne : complétion de profil (depuis "qui es-tu") ou
+     création (repli "pas dans la liste" / bouton sidebar). -->
+<div id="person-modal" class="app-modal hidden">
+  <div class="app-modal-inner">
+    <div class="app-modal-header">
+      <span id="person-modal-title" class="app-modal-title">Ajouter une personne</span>
+      <button id="person-modal-close" class="app-modal-close">✕</button>
+    </div>
+
+    <div id="person-panel">
+      <p class="add-date-hint" id="person-hint"></p>
+
+      <label for="person-nom">Nom</label>
+      <input type="text" id="person-nom" placeholder="Ex. Julien" />
+
+      <label for="person-surnoms">Surnoms (séparés par des virgules)</label>
+      <input type="text" id="person-surnoms" placeholder="Ex. Juju, Jules" />
+
+      <label for="person-emoji">Avatar (emoji, optionnel)</label>
+      <input type="text" id="person-emoji" placeholder="🍺" maxlength="4" />
+
+      <label for="person-email">Email</label>
+      <input type="email" id="person-email" placeholder="ex. julien@mail.com" />
+
+      <div class="add-actions">
+        <button id="person-cancel">Annuler</button>
+        <button id="person-submit" class="primary">Enregistrer</button>
+      </div>
+    </div>
   </div>
 </div>
 

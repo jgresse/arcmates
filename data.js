@@ -61,28 +61,41 @@ let color;
    2) CHARGEMENT DEPUIS SUPABASE
 --------------------------------------------------------- */
 
-async function initData() {
-  const rawPeople = await listPeople();
-
+// Construit `people` (enrichi couleur/avatar/side) + la palette `color` à
+// partir des lignes brutes renvoyées par listPeople(). Extrait de initData()
+// pour être réutilisable quand une personne est ajoutée/complétée en cours
+// de session (cf. chart.js) : la palette est dimensionnée sur le nombre
+// total de personnes, donc un simple push de la nouvelle entrée sans
+// recalculer `color` laisserait les couleurs incohérentes avec ce que
+// donnerait un rechargement de page.
+function buildPeople(rawPeople) {
   // Palette dynamique, dimensionnée sur le nombre réel de personnes plutôt
   // qu'une palette catégorielle fixe (d3.schemeTableau10 n'a que 10 teintes :
   // au-delà, deux personnes finiraient avec la même couleur d'arc). Teintes
   // réparties régulièrement sur la roue des couleurs (toujours distinctes
   // quel que soit N), désaturées/éclaircies façon aquarelle plutôt qu'un
   // arc-en-ciel plein, luminosité relevée pour bien ressortir en dark mode.
-  color = d3.scaleOrdinal(
+  const newColor = d3.scaleOrdinal(
     d3.quantize(t => d3.hsl(t * 360, 0.55, 0.64), Math.max(rawPeople.length, 1))
   ).domain(rawPeople.map(p => p.nom));
 
-  people = rawPeople.map((p, i) => ({
+  const newPeople = rawPeople.map((p, i) => ({
     id: p.id,
     nom: p.nom,
-    couleur: color(p.nom),
+    email: p.email,
+    couleur: newColor(p.nom),
     avatar: p.emoji || AVATAR_EMOJIS[i % AVATAR_EMOJIS.length],
     // Une personne sur deux a ses arcs au-dessus / en-dessous du tronc, pour
     // désencombrer une frise dense (cf. retour POC).
     side: i % 2 === 0 ? "above" : "below"
   }));
+
+  return { people: newPeople, color: newColor };
+}
+
+async function initData() {
+  const rawPeople = await listPeople();
+  ({ people, color } = buildPeople(rawPeople));
 
   events = await listEvents();
 
@@ -121,6 +134,27 @@ function recomputeArcs() {
 }
 
 /* ---------------------------------------------------------
+   3bis) IDENTITÉ DÉCLARATIVE — décisions pures utilisées par le flux
+   "qui es-tu" de chart.js. Extraites ici (plutôt que laissées inline dans
+   chart.js) pour rester testables sans dépendre du rendu D3/SVG, même
+   principe que computeArcsForPerson/applyRealtimeChange ci-dessus.
+--------------------------------------------------------- */
+
+// Vrai si aucune identité locale valide n'est connue : soit rien n'a jamais
+// été choisi (currentId vide), soit la personne choisie a depuis disparu de
+// `peopleList` (supprimée entretemps) — dans les deux cas, l'écran "qui
+// es-tu" doit s'afficher.
+function needsIdentitySelection(currentId, peopleList = people) {
+  return !currentId || !peopleList.some(p => p.id === currentId);
+}
+
+// Vrai si le profil d'une personne est incomplet — critère retenu : absence
+// d'email (pas de colonne booléenne séparée, cf. plans/roadmap.md).
+function needsProfileCompletion(person) {
+  return !person.email;
+}
+
+/* ---------------------------------------------------------
    4) TEMPS RÉEL — merge des changements Supabase Realtime
    (cf. storage.js#subscribeToEvents). Upsert idempotent par id : réappliquer
    un changement déjà présent (notamment le sien — on ne cherche pas à
@@ -153,6 +187,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     EVENT_TYPES,
     TYPE_COLORS, TYPE_EMOJIS, typeColor, AVATAR_EMOJIS,
-    computeArcsForPerson, applyRealtimeChange
+    buildPeople, computeArcsForPerson, applyRealtimeChange,
+    needsIdentitySelection, needsProfileCompletion
   };
 }

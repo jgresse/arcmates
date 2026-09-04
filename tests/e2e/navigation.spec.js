@@ -7,6 +7,24 @@
 // accès réseau sortant et échoueront si Supabase est injoignable.
 const { test, expect } = require("@playwright/test");
 
+// Chaque run Playwright démarre avec un `localStorage` vide (nouveau
+// contexte navigateur) : l'écran "qui es-tu" (plein écran, pas de bouton
+// fermer, cf. chart.js#showWhoAreYouIfNeeded) s'affiche donc avant qu'on
+// puisse atteindre le reste de la page (il intercepte les clics sur
+// #drawer-toggle etc.). On le traverse en choisissant la première personne
+// de la vraie liste Supabase (peu importe laquelle pour ces tests de
+// navigation) plutôt que d'injecter un id dans localStorage à l'avance
+// (dépendrait d'un id réel connu d'avance). Si le profil choisi est
+// incomplet (pas d'email), la complétion s'enchaîne automatiquement — sans
+// lien avec ce que ces tests veulent vérifier, donc on l'annule.
+async function dismissWhoAreYou(page) {
+  const whoAreYou = page.locator("#whoareyou-modal");
+  if (!(await whoAreYou.isVisible())) return;
+  await page.click("#whoareyou-list .legend-item >> nth=0");
+  const personModal = page.locator("#person-modal");
+  if (await personModal.isVisible()) await page.click("#person-cancel");
+}
+
 test.describe("guide.html — navigation et langue", () => {
   test("se charge en français par défaut, sans erreur console", async ({ page }) => {
     const consoleErrors = [];
@@ -39,6 +57,7 @@ test.describe("arc-diagram.html — drawer et lien vers le guide", () => {
   test("le bouton ☰ ouvre le drawer, qui contient un lien vers le guide", async ({ page }) => {
     await page.goto("/arc-diagram.html");
     await expect(page.locator("#load-status")).not.toHaveClass(/visible/, { timeout: 15000 });
+    await dismissWhoAreYou(page);
 
     await page.click("#drawer-toggle");
     await expect(page.locator("#sidebar")).toHaveClass(/open/);
@@ -51,6 +70,7 @@ test.describe("arc-diagram.html — drawer et lien vers le guide", () => {
   test("cliquer sur le lien Guide dans le drawer navigue vers guide.html", async ({ page }) => {
     await page.goto("/arc-diagram.html");
     await expect(page.locator("#load-status")).not.toHaveClass(/visible/, { timeout: 15000 });
+    await dismissWhoAreYou(page);
 
     await page.click("#drawer-toggle");
     await page.click("#sidebar-guide-link");
@@ -64,5 +84,29 @@ test.describe("arc-diagram.html — drawer et lien vers le guide", () => {
     await expect(page.locator("#load-status")).not.toHaveClass(/visible/, { timeout: 15000 });
     await expect(page.locator("#load-status")).not.toHaveClass(/error/);
     await expect(page.locator("svg#chart .axis-line")).toHaveCount(1);
+  });
+});
+
+test.describe("arc-diagram.html — ajout de personne (navigation seule)", () => {
+  // Volontairement pas de clic sur #person-submit : ça créerait une vraie
+  // ligne dans la table `people` de la vraie base Supabase (pas de projet
+  // de test séparé, cf. contrainte déjà en place pour les évènements
+  // en tête de fichier).
+  test("le bouton '+ Ajouter une personne' ouvre le formulaire en mode création", async ({ page }) => {
+    await page.goto("/arc-diagram.html");
+    await expect(page.locator("#load-status")).not.toHaveClass(/visible/, { timeout: 15000 });
+    await dismissWhoAreYou(page);
+
+    await page.click("#drawer-toggle");
+    await page.click("#add-person-btn");
+
+    await expect(page.locator("#person-modal")).not.toHaveClass(/hidden/);
+    await expect(page.locator("#person-nom")).toBeVisible();
+    await expect(page.locator("#person-nom")).toBeEnabled();
+    await expect(page.locator("#person-nom")).toHaveValue("");
+    await expect(page.locator("#person-email")).toBeVisible();
+
+    await page.click("#person-cancel");
+    await expect(page.locator("#person-modal")).toHaveClass(/hidden/);
   });
 });

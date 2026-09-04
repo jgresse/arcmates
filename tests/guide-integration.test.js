@@ -170,3 +170,31 @@ test("arc-diagram.html : un lien vers guide.html est présent dans le drawer #si
   const guideLink = sidebar.querySelector('a[href="guide.html"]');
   assert.ok(guideLink, "aucun lien vers guide.html dans #sidebar");
 });
+
+test("arc-diagram.html : le bouton d'ajout de personne est présent dans la sidebar", () => {
+  const arcHtml = fs.readFileSync(ARC_DIAGRAM_HTML_PATH, "utf8");
+  const dom = new JSDOM(arcHtml, { url: "http://localhost/arc-diagram.html" });
+  const doc = dom.window.document;
+
+  const btn = doc.querySelector("#sidebar #add-person-btn");
+  assert.ok(btn, "#add-person-btn introuvable dans la sidebar");
+});
+
+test("arc-diagram.html : la modal \"qui es-tu\" et le formulaire personne existent avec les bons champs", () => {
+  const arcHtml = fs.readFileSync(ARC_DIAGRAM_HTML_PATH, "utf8");
+  const dom = new JSDOM(arcHtml, { url: "http://localhost/arc-diagram.html" });
+  const doc = dom.window.document;
+
+  const whoAreYou = doc.querySelector("#whoareyou-modal");
+  assert.ok(whoAreYou, "#whoareyou-modal introuvable");
+  assert.ok(whoAreYou.classList.contains("hidden"), "#whoareyou-modal doit être cachée par défaut");
+  assert.ok(doc.querySelector("#whoareyou-list"), "#whoareyou-list introuvable");
+  assert.ok(doc.querySelector("#whoareyou-not-in-list"), "lien \"je ne suis pas dans la liste\" introuvable");
+
+  const personModal = doc.querySelector("#person-modal");
+  assert.ok(personModal, "#person-modal introuvable");
+  assert.ok(personModal.classList.contains("hidden"), "#person-modal doit être cachée par défaut");
+  for (const id of ["person-nom", "person-surnoms", "person-emoji", "person-email", "person-submit", "person-cancel"]) {
+    assert.ok(doc.getElementById(id), `#${id} introuvable dans #person-modal`);
+  }
+});
