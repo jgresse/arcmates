@@ -28,6 +28,10 @@ const GUIDE_I18N = {
     s3_title: "Filtrer par personne ou par type",
     s3_body: "Dans le panneau, clique sur une personne pour ne voir que ses arcs (re-clique pour désélectionner). Clique sur un type d'évènement (fête, voyage, concert…) pour ne garder que les nœuds de ce type. Les deux filtres se combinent.",
 
+    s6_title: "Qui es-tu ? Ajouter une personne",
+    s6_body: "Au tout premier chargement, Arcmates te demande de te choisir dans la liste des personnes existantes : ce choix est mémorisé sur cet appareil pour préremplir tes évènements et ton filtre. Si ton profil n'a pas encore d'email, un formulaire te propose de le compléter — tu peux annuler, il te sera reproposé au prochain chargement tant que l'email manque.",
+    s6_body2: "Pour ajouter une nouvelle personne à Arcmates, utilise le bouton « + Ajouter une personne » dans le panneau (☰) : renseigne son nom, et si tu les as, ses surnoms/avatar/email. Elle apparaît immédiatement, sans validation préalable — il n'y a pas de compte ni de mot de passe, comme pour les évènements.",
+
     s4_title: "Ajouter un évènement",
     s4_body: "Clique sur une zone vide d'Arcmates à la date qui t'intéresse : un formulaire s'ouvre.",
     s4_step1: "Renseigne le titre, le type d'évènement et les personnes taguées.",
@@ -42,8 +46,8 @@ const GUIDE_I18N = {
     faq1_a: "Vérifie qu'aucun filtre (personne ou type) n'est actif — un filtre peut masquer l'évènement fraîchement créé. Sinon, vérifie ta connexion : sans réseau, l'enregistrement échoue et un message d'erreur s'affiche en haut de l'écran.",
     faq2_q: "Puis-je modifier l'évènement de quelqu'un d'autre ?",
     faq2_a: "Oui : il n'y a pas de compte personnel, tout le monde peut ajouter, modifier ou supprimer n'importe quel évènement. Fais preuve de bon sens collectif.",
-    faq3_q: "Comment faire ajouter une nouvelle personne à Arcmates ?",
-    faq3_a: "Les personnes ne s'ajoutent pas depuis l'app (pas de formulaire d'inscription) — demande à la personne qui gère la base de données de t'ajouter."
+    faq3_q: "Comment ajouter une nouvelle personne à Arcmates ?",
+    faq3_a: "Utilise le bouton « + Ajouter une personne » dans le panneau de gauche (☰) — plus besoin de demander à quelqu'un d'autre de le faire à ta place."
   },
   en: {
     meta_title: "Guide — Arcmates",
@@ -61,6 +65,10 @@ const GUIDE_I18N = {
     s3_title: "Filtering by person or type",
     s3_body: "In the panel, click a person to show only their arcs (click again to deselect). Click an event type (party, trip, concert…) to keep only nodes of that type. Both filters can be combined.",
 
+    s6_title: "Who are you? Adding a person",
+    s6_body: "On your very first visit, Arcmates asks you to pick yourself from the list of existing people: that choice is remembered on this device to pre-fill your events and your filter. If your profile doesn't have an email yet, a form offers to complete it — you can cancel, and it'll be offered again next time as long as the email is missing.",
+    s6_body2: "To add a new person to Arcmates, use the “+ Add a person” button in the panel (☰): fill in their name, and if you have them, their nicknames/avatar/email. They show up right away, no approval needed — there's no account or password, just like for events.",
+
     s4_title: "Adding an event",
     s4_body: "Tap an empty spot on Arcmates at the date you want: a form opens.",
     s4_step1: "Fill in the title, event type, and tagged people.",
@@ -75,8 +83,8 @@ const GUIDE_I18N = {
     faq1_a: "Check that no filter (person or type) is active — a filter can hide a freshly created event. Otherwise, check your connection: without network access, saving fails and an error message appears at the top of the screen.",
     faq2_q: "Can I edit someone else's event?",
     faq2_a: "Yes: there's no personal account — anyone can add, edit, or delete any event. Use good collective judgment.",
-    faq3_q: "How do I get a new person added to Arcmates?",
-    faq3_a: "People aren't added from the app itself (there's no sign-up form) — ask whoever manages the database to add you."
+    faq3_q: "How do I add a new person to Arcmates?",
+    faq3_a: "Use the “+ Add a person” button in the left panel (☰) — no need to ask someone else to do it for you."
   }
 };
 
