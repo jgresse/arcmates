@@ -559,7 +559,14 @@ function closeDrawer() {
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("drawer-backdrop").classList.remove("visible");
 }
-document.getElementById("drawer-toggle").addEventListener("click", openDrawer);
+function toggleDrawer() {
+  if (document.getElementById("sidebar").classList.contains("open")) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
+}
+document.getElementById("drawer-toggle").addEventListener("click", toggleDrawer);
 document.getElementById("drawer-backdrop").addEventListener("click", closeDrawer);
 
 // ---- Modal full-screen pour le formulaire sur mobile ----
