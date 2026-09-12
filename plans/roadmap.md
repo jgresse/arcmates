@@ -74,7 +74,36 @@
 - [ ] Recherche texte dans les titres/descriptions, en complément du filtre
       par personne/type.
 - [ ] Vue "aujourd'hui il y a X ans" — met en avant les évènements dont
-      c'est l'anniversaire, façon "souvenirs".
+      c'est l'anniversaire, façon "souvenirs". Bandeau/notif discret au
+      boot, calculable directement sur les dates déjà en base (pas de
+      backend supplémentaire).
+- [ ] **Almanarc (bilan annuel)** — vue à la demande, bilan de groupe
+      (type d'évènement dominant, personne la plus active, plus grand
+      voyageur, duo le plus fréquent) + bilan par personne (mêmes stats
+      ramenées à un mate choisi). Pur calcul côté client sur
+      `events`/`people` déjà chargés, zéro backend en plus. Plan validé :
+      [`plans/almanarc.md`](almanarc.md) — **prochaine feature à
+      implémenter**.
+- [ ] Badges statistiques par personne, affichés en permanence sur la
+      frise/légende (ex. "🧳 le plus voyageur", "🎤 a vu le plus de
+      concerts") — Almanarc ci-dessus calcule déjà ces agrégats pour son
+      onglet "Par personne" ; cet item se limitera probablement à un
+      nouvel affichage réutilisant les mêmes fonctions plutôt qu'un
+      nouveau calcul.
+- [ ] Lien partageable vers un évènement précis (deep link type
+      `#event=<id>` qui centre/zoome dessus au chargement) — variante
+      ciblée de la persistance des filtres dans l'URL listée ci-dessus.
+- [ ] Mode "diaporama" — bouton qui scrolle/zoome automatiquement la frise
+      évènement par évènement dans l'ordre chronologique en surlignant
+      chacun, pour raconter la timeline en groupe plutôt que de naviguer à
+      la souris.
+- [ ] Lien vers une conversation WhatsApp par évènement — champ optionnel
+      (URL) sur l'évènement pointant vers le fil WhatsApp correspondant ;
+      un clic ouvre directement la conversation (photos, discussion) dans
+      WhatsApp plutôt que de dupliquer les photos dans Arcmates. Cohérent
+      avec le choix déjà acté de ne pas gérer d'upload d'image (cf.
+      commentaire `AVATAR_EMOJIS` dans `data.js`) : Arcmates reste un
+      pointeur vers les souvenirs, pas leur stockage.
 - [ ] Commentaires sur un évènement (qui se souvient de quoi).
 - [ ] Types d'évènements en table Supabase plutôt que codés en dur dans
       `data.js` (`EVENT_TYPES`/`TYPE_COLORS`/`TYPE_EMOJIS`) — permettrait

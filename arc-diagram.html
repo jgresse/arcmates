@@ -26,6 +26,7 @@
 
   <div id="sidebar">
     <a id="sidebar-guide-link" class="sidebar-guide-link" href="guide.html">📖 Guide d'utilisation</a>
+    <button id="almanarc-btn" class="sidebar-guide-link">✨ Almanarc</button>
 
     <div id="legend-wrap">
       <p class="legend-hint">Cliquer sur une personne pour filtrer la frise sur ses arcs (re-cliquer pour désélectionner) :</p>
@@ -120,6 +121,44 @@
       <div class="add-actions">
         <button id="person-cancel">Annuler</button>
         <button id="person-submit" class="primary">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Almanarc : bilan annuel (groupe + par personne), cf. plans/almanarc.md.
+     Tout le contenu (options d'année, cartes, liste de personnes) est
+     rempli/togglé au runtime par chart.js. -->
+<div id="almanarc-modal" class="app-modal hidden">
+  <div class="app-modal-inner almanarc-inner">
+    <div class="app-modal-header">
+      <span class="app-modal-title">Almanarc</span>
+      <button id="almanarc-modal-close" class="app-modal-close">✕</button>
+    </div>
+
+    <select id="almanarc-year" class="almanarc-year-select"></select>
+
+    <div class="almanarc-tabs">
+      <button id="almanarc-tab-groupe" class="almanarc-tab active" type="button">Groupe</button>
+      <button id="almanarc-tab-personne" class="almanarc-tab" type="button">Par personne</button>
+    </div>
+
+    <div id="almanarc-view-groupe" class="almanarc-view">
+      <div id="almanarc-progress-groupe" class="almanarc-progress"></div>
+      <div class="almanarc-stage">
+        <button class="almanarc-nav almanarc-nav-prev" data-view="groupe" type="button" aria-label="Précédent">‹</button>
+        <div id="almanarc-cards-groupe" class="almanarc-slide-wrap"></div>
+        <button class="almanarc-nav almanarc-nav-next" data-view="groupe" type="button" aria-label="Suivant">›</button>
+      </div>
+    </div>
+
+    <div id="almanarc-view-personne" class="almanarc-view hidden">
+      <ul id="almanarc-personne-list" class="almanarc-people-strip"></ul>
+      <div id="almanarc-progress-personne" class="almanarc-progress"></div>
+      <div class="almanarc-stage">
+        <button class="almanarc-nav almanarc-nav-prev" data-view="personne" type="button" aria-label="Précédent">‹</button>
+        <div id="almanarc-cards-personne" class="almanarc-slide-wrap"></div>
+        <button class="almanarc-nav almanarc-nav-next" data-view="personne" type="button" aria-label="Suivant">›</button>
       </div>
     </div>
   </div>

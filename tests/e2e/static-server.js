@@ -36,7 +36,13 @@ const server = http.createServer((req, res) => {
       return;
     }
     const ext = path.extname(filePath);
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    // Sans cache-control explicite, certains navigateurs mobiles appliquent
+    // un cache heuristique sur les .js/.css et re-servent une version
+    // périmée après un rechargement de la page HTML (vécu en testant
+    // Almanarc sur téléphone : nouveau HTML + vieux chart.js/style.css en
+    // cache). "no-store" évite ce piège pendant les tests manuels — ce
+    // serveur ne sert que le dev/e2e, jamais la prod.
+    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "no-store" });
     res.end(content);
   });
 });

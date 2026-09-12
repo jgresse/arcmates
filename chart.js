@@ -929,6 +929,390 @@ d3.select("#person-submit").on("click", async () => {
   }
 });
 
+/* ---------------------------------------------------------
+   ALMANARC — bilan annuel (groupe + par personne), façon "story" (une
+   slide/stat à la fois, précédent/suivant, barre de progression façon
+   Stories, auto-avance) — cf. plans/almanarc.md, révisé le 2026-09-12 sur
+   demande explicite ("vraiment comme le Wrapped de Spotify").
+   Calcul dans data.js (availableYears/computeAlmanarcGroupe/
+   computeAlmanarcPersonne) ; ici uniquement le rendu de la modale
+   #almanarc-modal et ses interactions. Pas d'état persisté : rouvrir la
+   modale repart de l'année civile en cours et de l'identité courante
+   (cf. getCurrentPersonId).
+--------------------------------------------------------- */
+
+const ALMANARC_AUTO_ADVANCE_MS = 5000;
+
+const almanarcBtn = document.getElementById("almanarc-btn");
+const almanarcModal = document.getElementById("almanarc-modal");
+const almanarcModalClose = document.getElementById("almanarc-modal-close");
+const almanarcYearSelect = document.getElementById("almanarc-year");
+const almanarcTabGroupeBtn = document.getElementById("almanarc-tab-groupe");
+const almanarcTabPersonneBtn = document.getElementById("almanarc-tab-personne");
+const almanarcViewGroupe = document.getElementById("almanarc-view-groupe");
+const almanarcViewPersonne = document.getElementById("almanarc-view-personne");
+const almanarcCardsGroupe = document.getElementById("almanarc-cards-groupe");
+const almanarcCardsPersonne = document.getElementById("almanarc-cards-personne");
+const almanarcProgressGroupe = document.getElementById("almanarc-progress-groupe");
+const almanarcProgressPersonne = document.getElementById("almanarc-progress-personne");
+const almanarcPersonneList = document.getElementById("almanarc-personne-list");
+
+// Un onglet = une petite story : `slides` (tableau de { emoji, value,
+// label, color }) + `index` (slide affichée). Reconstruit en bloc à
+// chaque changement d'année/onglet/personne (cf. renderAlmanarcTab), pas
+// mis à jour slide par slide.
+const almanarcState = {
+  groupe: { slides: [], index: 0 },
+  personne: { slides: [], index: 0 }
+};
+let almanarcTab = "groupe";
+// Personne affichée dans l'onglet "Par personne" ; initialisée à l'identité
+// courante (getCurrentPersonId) à l'ouverture de la modale, pas ici — cf.
+// openAlmanarcModal().
+let selectedAlmanarcPersonId = null;
+let almanarcAutoAdvanceTimer = null;
+
+function almanarcSlide(emoji, value, label, color) {
+  return { emoji, value, label, color: color || null };
+}
+
+// Slides du bilan de groupe pour une année, dans l'ordre du plan (total,
+// type dominant, personne la plus active, plus grand voyageur, duo le plus
+// fréquent) ; un stat non calculable (ex. aucun voyage cette année-là) saute
+// juste sa slide plutôt que d'en afficher une vide. `color` teinte la slide
+// (cf. --slide-color en CSS) : celle de la personne concernée, ou celle du
+// type dominant — undefined pour la 1ère slide (pas de personne/type unique
+// associé), qui retombe sur l'accent par défaut du thème.
+function buildAlmanarcGroupeSlides(year) {
+  const stats = computeAlmanarcGroupe(year);
+  if (stats.totalEvents === 0) return [];
+
+  const slides = [
+    almanarcSlide("🗓️", stats.totalEvents, `évènement${stats.totalEvents > 1 ? "s" : ""} en ${year}`)
+  ];
+  if (stats.topType) {
+    slides.push(almanarcSlide(TYPE_EMOJIS[stats.topType.type] || "🏷️", stats.topType.type, `type dominant (${stats.topType.count})`, TYPE_COLORS[stats.topType.type]));
+  }
+  if (stats.mostActivePerson) {
+    slides.push(almanarcSlide(stats.mostActivePerson.person.avatar, stats.mostActivePerson.person.nom, `le·la plus actif·ve (${stats.mostActivePerson.count} évènement${stats.mostActivePerson.count > 1 ? "s" : ""})`, stats.mostActivePerson.person.couleur));
+  }
+  if (stats.topTraveler) {
+    slides.push(almanarcSlide(TYPE_EMOJIS["Voyage"], stats.topTraveler.person.nom, `plus grand·e voyageur·se (${stats.topTraveler.count} voyage${stats.topTraveler.count > 1 ? "s" : ""})`, stats.topTraveler.person.couleur));
+  }
+  if (stats.topDuo) {
+    slides.push(almanarcSlide("🤝", `${stats.topDuo.personA.nom} & ${stats.topDuo.personB.nom}`, `duo le plus fréquent (${stats.topDuo.count} évènement${stats.topDuo.count > 1 ? "s" : ""} ensemble)`, stats.topDuo.personA.couleur));
+  }
+  return slides;
+}
+
+// Même principe que buildAlmanarcGroupeSlides, pour le bilan d'une
+// personne (total, type dominant, meilleur mate de l'année).
+function buildAlmanarcPersonneSlides(personId, year) {
+  const person = people.find(p => p.id === personId);
+  if (!person) return [];
+
+  const stats = computeAlmanarcPersonne(personId, year);
+  if (stats.totalEvents === 0) return [];
+
+  const slides = [
+    almanarcSlide("🗓️", stats.totalEvents, `évènement${stats.totalEvents > 1 ? "s" : ""} en ${year}`, person.couleur)
+  ];
+  if (stats.topType) {
+    slides.push(almanarcSlide(TYPE_EMOJIS[stats.topType.type] || "🏷️", stats.topType.type, `type dominant (${stats.topType.count})`, TYPE_COLORS[stats.topType.type]));
+  }
+  if (stats.topMate) {
+    slides.push(almanarcSlide(stats.topMate.person.avatar, stats.topMate.person.nom, `meilleur mate de l'année (${stats.topMate.count} évènement${stats.topMate.count > 1 ? "s" : ""} ensemble)`, stats.topMate.person.couleur));
+  }
+  return slides;
+}
+
+function almanarcViewParts(view) {
+  return view === "groupe"
+    ? { container: almanarcCardsGroupe, progress: almanarcProgressGroupe, emptyMessage: "Rien à raconter pour cette année." }
+    : { container: almanarcCardsPersonne, progress: almanarcProgressPersonne, emptyMessage: "Rien à raconter pour cette personne, cette année-là." };
+}
+
+function clearAlmanarcAutoAdvance() {
+  if (almanarcAutoAdvanceTimer) {
+    clearTimeout(almanarcAutoAdvanceTimer);
+    almanarcAutoAdvanceTimer = null;
+  }
+}
+
+// Un segment par slide : plein pour les slides déjà vues (et pour la
+// dernière, affichée sans animation puisqu'il n'y a rien après) ; vide
+// pour les suivantes. Le remplissage animé de la slide *courante* (hors
+// dernière) est déclenché séparément par scheduleAlmanarcAutoAdvance, qui
+// s'exécute juste après cet appel dans renderAlmanarcSlide.
+function renderAlmanarcProgress(view) {
+  const { slides, index } = almanarcState[view];
+  const { progress } = almanarcViewParts(view);
+  const isLast = index === slides.length - 1;
+  d3.select(progress).selectAll(".almanarc-progress-segment")
+    .data(slides)
+    .join("div")
+    .attr("class", "almanarc-progress-segment")
+    .html((d, i) => `<span class="almanarc-progress-fill${i < index || (i === index && isLast) ? " filled" : ""}"></span>`);
+}
+
+function updateAlmanarcNavButtons(view) {
+  const { slides, index } = almanarcState[view];
+  const prevBtn = document.querySelector(`.almanarc-nav-prev[data-view="${view}"]`);
+  const nextBtn = document.querySelector(`.almanarc-nav-next[data-view="${view}"]`);
+  prevBtn.disabled = slides.length === 0 || index === 0;
+  nextBtn.disabled = slides.length === 0 || index >= slides.length - 1;
+}
+
+// Anime le segment de la slide courante (0% -> 100% sur ALMANARC_AUTO_ADVANCE_MS)
+// puis avance automatiquement — sauf sur la dernière slide, qui reste
+// affichée (pas d'écran de fin type "partager", hors scope du plan) tant
+// que l'utilisateur ne revient pas en arrière ou ne change pas d'année/
+// onglet/personne. Un reflow forcé (offsetWidth) sépare la pose de la
+// classe "active" de son état initial (width: 0%) : sans lui, le
+// navigateur peut fusionner les deux changements dans le même frame et la
+// barre saute directement à 100% sans transition visible.
+function scheduleAlmanarcAutoAdvance(view) {
+  const { slides, index } = almanarcState[view];
+  if (slides.length === 0 || index >= slides.length - 1) return;
+
+  const { progress } = almanarcViewParts(view);
+  const activeFill = progress.querySelectorAll(".almanarc-progress-fill")[index];
+  if (activeFill) {
+    activeFill.style.transitionDuration = `${ALMANARC_AUTO_ADVANCE_MS}ms`;
+    void activeFill.offsetWidth;
+    activeFill.classList.add("active");
+  }
+
+  almanarcAutoAdvanceTimer = setTimeout(() => nextAlmanarcSlide(view), ALMANARC_AUTO_ADVANCE_MS);
+}
+
+// Anime un chiffre de 0 à sa valeur finale (ease-out sur ALMANARC_COUNT_UP_MS)
+// façon compteur qui tourne — effet purement cosmétique, réservé aux
+// valeurs numériques (le nombre total d'évènements) ; un nom/type
+// (string) s'affiche directement, pas de sens à l'"animer" chiffre par
+// chiffre.
+const ALMANARC_COUNT_UP_MS = 650;
+function animateAlmanarcValue(el, value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    el.textContent = value;
+    return;
+  }
+  const start = performance.now();
+  function frame(now) {
+    const progress = Math.min((now - start) / ALMANARC_COUNT_UP_MS, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(value * eased);
+    if (progress < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+// Petite pluie de paillettes CSS à l'arrivée d'une slide (cf. .almanarc-particle
+// dans style.css) — aucun asset image, juste des <span> positionnés/animés
+// en JS. Purement décoratif : si `cardEl` est absent (état vide), no-op.
+function spawnAlmanarcConfetti(cardEl) {
+  if (!cardEl) return;
+  const count = 8;
+  for (let i = 0; i < count; i++) {
+    const particle = document.createElement("span");
+    particle.className = "almanarc-particle";
+    particle.textContent = "✨";
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const distance = 55 + Math.random() * 45;
+    particle.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+    particle.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+    particle.style.animationDelay = `${Math.random() * 0.12}s`;
+    cardEl.appendChild(particle);
+  }
+}
+
+function renderAlmanarcSlide(view) {
+  const { slides, index } = almanarcState[view];
+  const { container, emptyMessage } = almanarcViewParts(view);
+
+  clearAlmanarcAutoAdvance();
+
+  if (slides.length === 0) {
+    container.innerHTML = `<p class="almanarc-empty">${emptyMessage}</p>`;
+    renderAlmanarcProgress(view);
+    updateAlmanarcNavButtons(view);
+    return;
+  }
+
+  const slide = slides[index];
+  container.innerHTML = `<div class="almanarc-card"${slide.color ? ` style="--slide-color: ${slide.color}"` : ""}><span class="almanarc-card-emoji">${slide.emoji}</span><span class="almanarc-card-value"></span><span class="almanarc-card-label">${slide.label}</span></div>`;
+  const cardEl = container.querySelector(".almanarc-card");
+  animateAlmanarcValue(cardEl.querySelector(".almanarc-card-value"), slide.value);
+  spawnAlmanarcConfetti(cardEl);
+  renderAlmanarcProgress(view);
+  updateAlmanarcNavButtons(view);
+  scheduleAlmanarcAutoAdvance(view);
+}
+
+function goToAlmanarcSlide(view, index) {
+  const state = almanarcState[view];
+  if (index < 0 || index >= state.slides.length) return;
+  state.index = index;
+  renderAlmanarcSlide(view);
+}
+
+function nextAlmanarcSlide(view) {
+  goToAlmanarcSlide(view, almanarcState[view].index + 1);
+}
+
+function prevAlmanarcSlide(view) {
+  goToAlmanarcSlide(view, almanarcState[view].index - 1);
+}
+
+// Reconstruit entièrement les slides d'un onglet (nouvelle année, nouvel
+// onglet actif, ou nouvelle personne sélectionnée) et revient à la 1ère —
+// contrairement à goToAlmanarcSlide, qui ne fait que naviguer dans les
+// slides déjà construites.
+function renderAlmanarcTab(view) {
+  const year = currentAlmanarcYear();
+  const state = almanarcState[view];
+  state.slides = view === "groupe"
+    ? buildAlmanarcGroupeSlides(year)
+    : buildAlmanarcPersonneSlides(selectedAlmanarcPersonId, year);
+  state.index = 0;
+  renderAlmanarcSlide(view);
+}
+
+function currentAlmanarcYear() {
+  return Number(almanarcYearSelect.value);
+}
+
+function setAlmanarcTab(tab) {
+  almanarcTab = tab;
+  almanarcTabGroupeBtn.classList.toggle("active", tab === "groupe");
+  almanarcTabPersonneBtn.classList.toggle("active", tab === "personne");
+  almanarcViewGroupe.classList.toggle("hidden", tab !== "groupe");
+  almanarcViewPersonne.classList.toggle("hidden", tab !== "personne");
+  renderAlmanarcTab(tab);
+}
+
+// Rangée horizontale façon "bulles de stories" (cf. .almanarc-people-strip
+// en CSS) plutôt qu'un <select> : cohérent avec le reste de l'app qui
+// affiche toujours les personnes avec leur avatar emoji, et permet de
+// surligner la sélection courante (.active, même mécanique que la légende
+// des filtres).
+function renderAlmanarcPersonneList() {
+  d3.select(almanarcPersonneList).selectAll("li")
+    .data(people)
+    .join("li")
+    .attr("class", "legend-item")
+    .classed("active", d => d.id === selectedAlmanarcPersonId)
+    .style("--legend-color", d => d.couleur)
+    .style("--legend-tint", d => d3.interpolateRgb("#fff", d.couleur)(0.18))
+    .html(d => `<span class="legend-avatar">${d.avatar}</span>${d.nom}`)
+    .on("click", (event, d) => {
+      selectedAlmanarcPersonId = d.id;
+      renderAlmanarcPersonneList();
+      renderAlmanarcTab("personne");
+    });
+}
+
+// Années proposées = celles ayant des évènements + l'année civile en cours
+// (même si elle est encore vide) pour que le sélecteur ne parte jamais sur
+// une année sans rapport avec "maintenant" (cf. plan, décision #5).
+function populateAlmanarcYearSelect() {
+  const currentYear = new Date().getFullYear();
+  const years = new Set(availableYears());
+  years.add(currentYear);
+  const sorted = [...years].sort((a, b) => b - a);
+
+  d3.select(almanarcYearSelect).selectAll("option")
+    .data(sorted)
+    .join("option")
+    .attr("value", d => d)
+    .text(d => d);
+  almanarcYearSelect.value = String(currentYear);
+}
+
+function openAlmanarcModal() {
+  populateAlmanarcYearSelect();
+
+  const current = getCurrentPersonId();
+  selectedAlmanarcPersonId = people.some(p => p.id === current)
+    ? current
+    : (people[0] ? people[0].id : null);
+
+  renderAlmanarcPersonneList();
+  setAlmanarcTab("groupe");
+  almanarcModal.classList.remove("hidden");
+}
+
+function closeAlmanarcModal() {
+  clearAlmanarcAutoAdvance();
+  almanarcModal.classList.add("hidden");
+}
+
+// Navigation tactile façon Stories, deux gestes sur la même zone :
+// - tap sans déplacement : moitié droite de la slide avance, gauche recule
+//   (repère au pointerdown, pas besoin d'avoir bougé) ;
+// - glissement horizontal net (> 40px, plus horizontal que vertical) :
+//   swipe façon Stories, gauche = suivant, droite = précédent — plus
+//   naturel au doigt qu'un simple tap-zone sur un écran de téléphone.
+// Un seul jeu d'écouteurs pointer (couvre souris ET tactile) plutôt que
+// "click" + "touchstart" séparés, pour ne pas déclencher les deux à la
+// fois sur un tap. Attaché une seule fois sur le conteneur statique (pas
+// sur .almanarc-card, réinjectée à chaque rendu).
+function setupAlmanarcSlideGestures(container, view) {
+  let startX = null;
+  let startY = null;
+  let dragged = false;
+
+  container.addEventListener("pointerdown", (event) => {
+    startX = event.clientX;
+    startY = event.clientY;
+    dragged = false;
+  });
+  container.addEventListener("pointermove", (event) => {
+    if (startX === null) return;
+    if (Math.abs(event.clientX - startX) > 10) dragged = true;
+  });
+  container.addEventListener("pointerup", (event) => {
+    if (startX === null) return;
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+
+    if (dragged && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      dx < 0 ? nextAlmanarcSlide(view) : prevAlmanarcSlide(view);
+    } else if (!dragged) {
+      const rect = container.getBoundingClientRect();
+      const clickedRight = (startX - rect.left) > rect.width / 2;
+      clickedRight ? nextAlmanarcSlide(view) : prevAlmanarcSlide(view);
+    }
+    startX = null;
+    startY = null;
+  });
+}
+setupAlmanarcSlideGestures(almanarcCardsGroupe, "groupe");
+setupAlmanarcSlideGestures(almanarcCardsPersonne, "personne");
+
+document.querySelectorAll(".almanarc-nav-prev").forEach(btn => {
+  btn.addEventListener("click", () => prevAlmanarcSlide(btn.dataset.view));
+});
+document.querySelectorAll(".almanarc-nav-next").forEach(btn => {
+  btn.addEventListener("click", () => nextAlmanarcSlide(btn.dataset.view));
+});
+
+// Flèches clavier ↔ navigation de la slide courante, Échap ferme — actif
+// uniquement modale ouverte pour ne pas interférer avec le reste de l'app
+// (zoom/scroll de la frise notamment).
+document.addEventListener("keydown", (event) => {
+  if (almanarcModal.classList.contains("hidden")) return;
+  if (event.key === "ArrowRight") nextAlmanarcSlide(almanarcTab);
+  else if (event.key === "ArrowLeft") prevAlmanarcSlide(almanarcTab);
+  else if (event.key === "Escape") closeAlmanarcModal();
+});
+
+almanarcBtn.addEventListener("click", openAlmanarcModal);
+almanarcModalClose.addEventListener("click", closeAlmanarcModal);
+almanarcTabGroupeBtn.addEventListener("click", () => setAlmanarcTab("groupe"));
+almanarcTabPersonneBtn.addEventListener("click", () => setAlmanarcTab("personne"));
+almanarcYearSelect.addEventListener("change", () => renderAlmanarcTab(almanarcTab));
+
 // Démarrage : on attend le chargement Supabase (personnes + évènements)
 // avant de peupler la légende/le panneau et de lancer le premier render() —
 // tout le reste du fichier (setup D3, zoom, panneau) est indépendant des

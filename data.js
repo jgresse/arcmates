@@ -134,6 +134,169 @@ function recomputeArcs() {
 }
 
 /* ---------------------------------------------------------
+   3ter) ALMANARC — bilan annuel (groupe + par personne), cf. plans/almanarc.md.
+   Calcul pur, appelé par chart.js (renderAlmanarcGroupe/renderAlmanarcPersonne)
+   pour peupler la modale. Un évènement compte dans l'année de sa date de
+   *début* (`date`) — `dateFin` est ignorée pour qu'un évènement à cheval sur
+   deux années ne compte pas double (cf. plan, section "Stats calculées").
+--------------------------------------------------------- */
+
+// Années civiles distinctes présentes dans `eventsList` (déduites de `date`,
+// jamais `dateFin`), triées décroissant. Même pattern eventsList = events
+// que computeArcsForPerson pour rester testable sans Supabase.
+function availableYears(eventsList = events) {
+  const years = new Set(eventsList.map(e => e.date.getFullYear()));
+  return [...years].sort((a, b) => b - a);
+}
+
+// Étant donné un ordre de référence (EVENT_TYPES, ou la liste des ids de
+// peopleList) et une Map clé -> nombre d'occurrences, renvoie la clé au
+// compte maximal — les ex-aequo sont départagés par l'ordre de `orderedKeys`
+// (le premier qui atteint le max l'emporte), PAS par l'ordre d'apparition
+// dans les données (cf. plan, décision #6 sur les ex-aequo). Renvoie null si
+// `counts` est vide (aucune occurrence).
+function pickMaxByOrder(orderedKeys, counts) {
+  let best = null;
+  for (const key of orderedKeys) {
+    const count = counts.get(key);
+    if (count !== undefined && (best === null || count > best.count)) {
+      best = { key, count };
+    }
+  }
+  return best;
+}
+
+// Clé canonique (indépendante de l'ordre des deux ids) pour indexer une Map
+// de paires co-taguées.
+function pairKey(idA, idB) {
+  return idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;
+}
+
+// Compte, pour chaque paire de personnes co-taguées ensemble dans un même
+// évènement, le nombre d'évènements de `eventsList` où les deux apparaissent.
+// Ne considère que les évènements taguant >= 2 personnes ; un évènement à 3+
+// personnes taguées contribue à CHAQUE paire qu'il contient (cf. plan :
+// [p1,p2,p3] compte pour (p1,p2), (p1,p3) et (p2,p3)). Helper interne partagé
+// par topDuo (bilan groupe) et topMate (bilan personne) — pas exporté.
+function countCoTaggedPairs(eventsList) {
+  const counts = new Map();
+  for (const e of eventsList) {
+    const tagged = e.personnesTaguees;
+    if (!tagged || tagged.length < 2) continue;
+    for (let i = 0; i < tagged.length; i++) {
+      for (let j = i + 1; j < tagged.length; j++) {
+        const key = pairKey(tagged[i], tagged[j]);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+    }
+  }
+  return counts;
+}
+
+// Paire de personnes (parmi peopleList) co-taguée sur le plus d'évènements de
+// `eventsList`. Itère peopleList en double boucle (externe i, interne j > i)
+// pour que l'ordre d'ex-aequo suive l'ordre de peopleList, personA précédant
+// toujours personB — cf. plan. Renvoie null si aucune paire n'a de compte > 0.
+function computeTopDuo(eventsList, peopleList) {
+  const pairCounts = countCoTaggedPairs(eventsList);
+  let best = null;
+  for (let i = 0; i < peopleList.length; i++) {
+    for (let j = i + 1; j < peopleList.length; j++) {
+      const personA = peopleList[i];
+      const personB = peopleList[j];
+      const count = pairCounts.get(pairKey(personA.id, personB.id)) || 0;
+      if (count > 0 && (best === null || count > best.count)) {
+        best = { personA, personB, count };
+      }
+    }
+  }
+  return best;
+}
+
+// Personne (parmi peopleList, personId exclu) la plus souvent co-taguée avec
+// `personId` dans `eventsList`. Même mécanique que computeTopDuo, ancrée sur
+// une personne fixe plutôt que sur toutes les paires. Renvoie null si
+// `personId` ne partage aucun évènement avec quelqu'un d'autre.
+function computeTopMate(eventsList, personId, peopleList) {
+  const pairCounts = countCoTaggedPairs(eventsList);
+  let best = null;
+  for (const other of peopleList) {
+    if (other.id === personId) continue;
+    const count = pairCounts.get(pairKey(personId, other.id)) || 0;
+    if (count > 0 && (best === null || count > best.count)) {
+      best = { person: other, count };
+    }
+  }
+  return best;
+}
+
+// Bilan de groupe d'une année : total d'évènements, type dominant, personne
+// la plus active, plus grand voyageur, duo le plus fréquent. Tous les champs
+// (hors year/totalEvents) sont null si l'année n'a aucun évènement.
+function computeAlmanarcGroupe(year, eventsList = events, peopleList = people) {
+  const eventsOfYear = eventsList.filter(e => e.date.getFullYear() === year);
+  const totalEvents = eventsOfYear.length;
+
+  if (totalEvents === 0) {
+    return { year, totalEvents, topType: null, mostActivePerson: null, topTraveler: null, topDuo: null };
+  }
+
+  const typeCounts = new Map();
+  for (const e of eventsOfYear) typeCounts.set(e.type, (typeCounts.get(e.type) || 0) + 1);
+  const topTypeEntry = pickMaxByOrder(EVENT_TYPES, typeCounts);
+  const topType = topTypeEntry ? { type: topTypeEntry.key, count: topTypeEntry.count } : null;
+
+  const personCounts = new Map();
+  for (const e of eventsOfYear) {
+    for (const pid of e.personnesTaguees) personCounts.set(pid, (personCounts.get(pid) || 0) + 1);
+  }
+  const activeEntry = pickMaxByOrder(peopleList.map(p => p.id), personCounts);
+  const mostActivePerson = activeEntry
+    ? { person: peopleList.find(p => p.id === activeEntry.key), count: activeEntry.count }
+    : null;
+
+  const voyageCounts = new Map();
+  for (const e of eventsOfYear) {
+    if (e.type !== "Voyage") continue;
+    for (const pid of e.personnesTaguees) voyageCounts.set(pid, (voyageCounts.get(pid) || 0) + 1);
+  }
+  const travelerEntry = pickMaxByOrder(peopleList.map(p => p.id), voyageCounts);
+  const topTraveler = travelerEntry
+    ? { person: peopleList.find(p => p.id === travelerEntry.key), count: travelerEntry.count }
+    : null;
+
+  const duo = computeTopDuo(eventsOfYear, peopleList);
+  const topDuo = duo ? { personA: duo.personA, personB: duo.personB, count: duo.count } : null;
+
+  return { year, totalEvents, topType, mostActivePerson, topTraveler, topDuo };
+}
+
+// Bilan individuel d'une année pour `personId` : nombre d'évènements où elle
+// est taguée, son type dominant, son meilleur mate de l'année. Tous les
+// champs (hors personId/year/totalEvents) sont null si elle n'a aucun
+// évènement cette année-là.
+function computeAlmanarcPersonne(personId, year, eventsList = events, peopleList = people) {
+  const eventsOfYear = eventsList.filter(
+    e => e.date.getFullYear() === year && e.personnesTaguees.includes(personId)
+  );
+  const totalEvents = eventsOfYear.length;
+
+  if (totalEvents === 0) {
+    return { personId, year, totalEvents, topType: null, topMate: null };
+  }
+
+  const typeCounts = new Map();
+  for (const e of eventsOfYear) typeCounts.set(e.type, (typeCounts.get(e.type) || 0) + 1);
+  const topTypeEntry = pickMaxByOrder(EVENT_TYPES, typeCounts);
+  const topType = topTypeEntry ? { type: topTypeEntry.key, count: topTypeEntry.count } : null;
+
+  const mate = computeTopMate(eventsOfYear, personId, peopleList);
+  const topMate = mate ? { person: mate.person, count: mate.count } : null;
+
+  return { personId, year, totalEvents, topType, topMate };
+}
+
+/* ---------------------------------------------------------
    3bis) IDENTITÉ DÉCLARATIVE — décisions pures utilisées par le flux
    "qui es-tu" de chart.js. Extraites ici (plutôt que laissées inline dans
    chart.js) pour rester testables sans dépendre du rendu D3/SVG, même
@@ -188,6 +351,7 @@ if (typeof module !== "undefined" && module.exports) {
     EVENT_TYPES,
     TYPE_COLORS, TYPE_EMOJIS, typeColor, AVATAR_EMOJIS,
     buildPeople, computeArcsForPerson, applyRealtimeChange,
-    needsIdentitySelection, needsProfileCompletion
+    needsIdentitySelection, needsProfileCompletion,
+    availableYears, computeAlmanarcGroupe, computeAlmanarcPersonne
   };
 }

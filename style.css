@@ -613,6 +613,229 @@ p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 
 #person-panel button.primary:hover { background: var(--accent); border-color: var(--accent); color: #06281c; }
 
 /* ---------------------------------------------------------
+   ALMANARC — bilan annuel (modale #almanarc-modal), façon "story" (un
+   stat plein écran à la fois, navigation précédent/suivant, barre de
+   progression façon Stories, auto-avance) plutôt qu'une grille statique
+   de cartes — cf. plans/almanarc.md (révisé le 2026-09-12 sur demande
+   explicite : "vraiment comme le Wrapped de Spotify").
+--------------------------------------------------------- */
+.almanarc-inner { max-width: 380px; }
+
+.almanarc-year-select {
+  display: block;
+  width: 100%;
+  margin: 4px 0 16px;
+  font-size: 16px; /* ≥16px évite le zoom automatique de Safari mobile */
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 8px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  box-sizing: border-box;
+}
+.almanarc-year-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.almanarc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.almanarc-tab {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.almanarc-tab:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+.almanarc-tab.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.almanarc-view.hidden { display: none; }
+
+/* Rangée de personnes façon "bulles de stories" (défilement horizontal,
+   items non wrappés) plutôt que la liste verticale pleine largeur des
+   autres modales — laisse toute la hauteur restante à la slide. Réutilise
+   .legend-item/.legend-avatar tels quels (même pastille avatar+nom). */
+.almanarc-people-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  margin: 0;
+  list-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.almanarc-people-strip .legend-item { flex: 0 0 auto; }
+
+/* Barre de progression façon Stories Instagram : un segment par slide.
+   Un segment "filled" (slide déjà vue) est plein ; le segment "active" se
+   remplit en continu via une transition de largeur déclenchée par JS
+   (cf. chart.js scheduleAlmanarcAutoAdvance) — durée fixée en JS pour
+   rester synchronisée avec le timer d'auto-avance. */
+.almanarc-progress {
+  display: flex;
+  gap: 4px;
+  margin: 10px 0 14px;
+}
+.almanarc-progress-segment {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.almanarc-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--ink);
+  border-radius: inherit;
+}
+.almanarc-progress-fill.filled { width: 100%; }
+.almanarc-progress-fill.active { width: 100%; transition-property: width; transition-timing-function: linear; }
+
+.almanarc-stage {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.almanarc-nav {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-secondary);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.almanarc-nav:hover { background: rgba(255, 255, 255, 0.09); color: var(--ink); border-color: var(--accent); }
+.almanarc-nav:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+
+.almanarc-slide-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 280px;
+  display: flex;
+}
+
+@keyframes almanarc-slide-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes almanarc-pop {
+  0% { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+  65% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes almanarc-value-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* Particule de "confetti" (cf. spawnAlmanarcConfetti dans chart.js) : part
+   du centre, part vers un point aléatoire (--dx/--dy posés en JS) en
+   tournant légèrement, puis disparaît. Purement CSS/JS, aucune image. */
+@keyframes almanarc-particle {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.3) rotate(50deg); opacity: 0; }
+}
+
+/* Une slide = un stat plein cadre (ex-.almanarc-card, gardé pour ne pas
+   retoucher le HTML généré par chart.js). --slide-color est posée en
+   inline-style par chart.js (couleur de la personne concernée, ou du type
+   d'évènement dominant) et teinte tout le cadre (fond, bordure, ombre,
+   glow du texte) — c'est ce qui donne l'effet "chaque stat a sa couleur"
+   façon Wrapped, sans le moindre asset image.
+   `overflow: hidden` recadre les particules de confetti sur les coins
+   arrondis plutôt que de les laisser déborder du cadre. */
+.almanarc-card {
+  --slide-color: var(--accent);
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 22px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--slide-color) 55%, var(--glass-border));
+  background:
+    radial-gradient(circle at 22% 12%, color-mix(in srgb, var(--slide-color) 55%, transparent), transparent 55%),
+    linear-gradient(155deg, color-mix(in srgb, var(--slide-color) 38%, var(--card)) 0%, color-mix(in srgb, var(--slide-color) 12%, var(--card)) 45%, var(--card) 85%);
+  box-shadow: 0 24px 48px -18px color-mix(in srgb, var(--slide-color) 55%, transparent);
+  animation: almanarc-slide-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.almanarc-card-emoji {
+  font-size: 46px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--slide-color) 60%, transparent));
+  animation: almanarc-pop 0.5s 0.05s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.almanarc-card-value {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 28px color-mix(in srgb, var(--slide-color) 70%, transparent);
+  animation: almanarc-value-in 0.4s 0.1s ease both;
+}
+.almanarc-card-label {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  line-height: 1.4;
+  animation: almanarc-value-in 0.4s 0.18s ease both;
+}
+.almanarc-particle {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  font-size: 15px;
+  pointer-events: none;
+  animation: almanarc-particle 0.8s ease-out forwards;
+}
+
+/* Message affiché à la place de la slide quand l'année (ou la personne)
+   sélectionnée n'a aucun évènement — cf. chart.js renderAlmanarcGroupe/
+   renderAlmanarcPersonne. */
+.almanarc-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 40px 20px;
+}
+
+/* ---------------------------------------------------------
    GUIDE — page statique guide.html (doc utilisateur, bilingue FR/EN).
    Page de lecture classique (pas de layout plein écran comme la frise) :
    colonne centrée, sections empilées séparées par un hairline.
@@ -742,6 +965,14 @@ p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 
   transition: background 0.15s, color 0.15s;
 }
 .sidebar-guide-link:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
+/* `.sidebar-guide-link` habille aussi bien un <a> (lien guide) qu'un
+   <button> (#almanarc-btn) — les <button> n'héritent pas nativement de
+   font/cursor/width comme les liens sur tous les navigateurs. */
+button.sidebar-guide-link {
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+}
 
 @media (max-width: 480px) {
   .guide-page { padding: 32px 18px 72px; }

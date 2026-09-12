@@ -10,7 +10,8 @@ const {
   EVENT_TYPES,
   TYPE_COLORS, TYPE_EMOJIS, typeColor,
   AVATAR_EMOJIS, buildPeople, computeArcsForPerson, applyRealtimeChange,
-  needsIdentitySelection, needsProfileCompletion
+  needsIdentitySelection, needsProfileCompletion,
+  availableYears, computeAlmanarcGroupe, computeAlmanarcPersonne
 } = require("../data.js");
 
 test("EVENT_TYPES / TYPE_COLORS / TYPE_EMOJIS restent en phase", () => {
@@ -147,4 +148,139 @@ test("needsProfileCompletion() est vrai seulement si le profil n'a pas d'email",
   assert.equal(needsProfileCompletion({ nom: "Greg" }), true);
   assert.equal(needsProfileCompletion({ nom: "Greg", email: "" }), true);
   assert.equal(needsProfileCompletion({ nom: "Greg", email: "greg@mail.com" }), false);
+});
+
+/* ---------------------------------------------------------
+   ALMANARC — availableYears / computeAlmanarcGroupe / computeAlmanarcPersonne
+--------------------------------------------------------- */
+
+// Jeu de données partagé par les tests Almanarc ci-dessous : 4 personnes
+// (Zoé n'apparaît taguée dans aucun évènement, pour tester les cas "vide"),
+// 4 évènements en 2023 + 1 en 2022 (pour vérifier le filtrage par année).
+// e4 tague 3 personnes à la fois : sert à vérifier que les 3 paires qu'il
+// contient comptent bien pour topDuo/topMate.
+const almanarcPeople = [
+  { id: "p1", nom: "Greg" },
+  { id: "p2", nom: "Dirty" },
+  { id: "p3", nom: "Antho" },
+  { id: "p4", nom: "Zoé" }
+];
+const almanarcEvents = [
+  { id: "e1", date: new Date(2023, 0, 1), type: "Voyage", personnesTaguees: ["p1", "p2"] },
+  { id: "e2", date: new Date(2023, 1, 1), type: "Voyage", personnesTaguees: ["p1"] },
+  { id: "e3", date: new Date(2023, 2, 1), type: "Concert", personnesTaguees: ["p2", "p3"] },
+  { id: "e4", date: new Date(2023, 3, 1), type: "Concert", personnesTaguees: ["p1", "p2", "p3"] },
+  { id: "e5", date: new Date(2022, 0, 1), type: "Fête / Anniversaire", personnesTaguees: ["p3"] }
+];
+
+test("availableYears() renvoie les années distinctes présentes, triées décroissant", () => {
+  assert.deepEqual(availableYears(almanarcEvents), [2023, 2022]);
+});
+
+test("availableYears() renvoie [] pour une liste vide", () => {
+  assert.deepEqual(availableYears([]), []);
+});
+
+test("availableYears() ne renvoie pas de doublon pour plusieurs évènements la même année", () => {
+  const evts = [
+    { date: new Date(2021, 0, 1) },
+    { date: new Date(2021, 5, 1) },
+    { date: new Date(2020, 0, 1) }
+  ];
+  assert.deepEqual(availableYears(evts), [2021, 2020]);
+});
+
+test("computeAlmanarcGroupe() calcule le bilan d'une année avec des données", () => {
+  const res = computeAlmanarcGroupe(2023, almanarcEvents, almanarcPeople);
+
+  assert.equal(res.year, 2023);
+  assert.equal(res.totalEvents, 4, "seuls les 4 évènements de 2023 comptent, pas e5 (2022)");
+
+  // Voyage et Concert sont à 2 chacun : Voyage l'emporte car il précède
+  // Concert dans EVENT_TYPES, indépendamment de l'ordre des évènements.
+  assert.deepEqual(res.topType, { type: "Voyage", count: 2 });
+
+  // p1 et p2 sont tous les deux taggés 3 fois (e1,e2,e4 / e1,e3,e4) : p1
+  // l'emporte car il précède p2 dans peopleList.
+  assert.equal(res.mostActivePerson.person.id, "p1");
+  assert.equal(res.mostActivePerson.count, 3);
+
+  // Seuls e1 (p1,p2) et e2 (p1) sont des voyages : p1 en a 2, p2 en a 1.
+  assert.equal(res.topTraveler.person.id, "p1");
+  assert.equal(res.topTraveler.count, 2);
+
+  // Paires co-taguées : (p1,p2) via e1+e4 = 2 ; (p2,p3) via e3+e4 = 2 ;
+  // (p1,p3) via e4 = 1. Ex-aequo (p1,p2)/(p2,p3) à 2 : (p1,p2) l'emporte car
+  // rencontrée en premier dans la double boucle sur peopleList.
+  assert.equal(res.topDuo.personA.id, "p1");
+  assert.equal(res.topDuo.personB.id, "p2");
+  assert.equal(res.topDuo.count, 2);
+});
+
+test("computeAlmanarcGroupe() sur une année sans aucun évènement : tout est null sauf year/totalEvents", () => {
+  const res = computeAlmanarcGroupe(2099, almanarcEvents, almanarcPeople);
+  assert.deepEqual(res, {
+    year: 2099,
+    totalEvents: 0,
+    topType: null,
+    mostActivePerson: null,
+    topTraveler: null,
+    topDuo: null
+  });
+});
+
+test("computeAlmanarcGroupe() : ex-aequo sur topType résolu par l'ordre de EVENT_TYPES, pas par l'ordre des évènements", () => {
+  const people = [{ id: "p1", nom: "Greg" }];
+  // Concert apparaît en premier dans le tableau, mais Voyage doit gagner car
+  // il précède Concert dans EVENT_TYPES.
+  const evts = [
+    { id: "e1", date: new Date(2023, 5, 1), type: "Concert", personnesTaguees: ["p1"] },
+    { id: "e2", date: new Date(2023, 5, 2), type: "Voyage", personnesTaguees: ["p1"] }
+  ];
+  assert.deepEqual(computeAlmanarcGroupe(2023, evts, people).topType, { type: "Voyage", count: 1 });
+});
+
+test("computeAlmanarcGroupe() : topDuo compte les 3 paires d'un évènement taguant 3 personnes", () => {
+  const people = [{ id: "p1" }, { id: "p2" }, { id: "p3" }];
+  const evts = [
+    { id: "e1", date: new Date(2023, 0, 1), type: "Concert", personnesTaguees: ["p1", "p2", "p3"] }
+  ];
+  const res = computeAlmanarcGroupe(2023, evts, people);
+  // Une seule occurrence de chaque paire => (p1,p2), rencontrée en premier
+  // dans la double boucle, l'emporte (toutes à 1, pas de count strictement
+  // supérieur pour la déloger).
+  assert.equal(res.topDuo.personA.id, "p1");
+  assert.equal(res.topDuo.personB.id, "p2");
+  assert.equal(res.topDuo.count, 1);
+});
+
+test("computeAlmanarcPersonne() calcule le bilan d'une personne avec des évènements cette année", () => {
+  const res = computeAlmanarcPersonne("p1", 2023, almanarcEvents, almanarcPeople);
+
+  assert.equal(res.personId, "p1");
+  assert.equal(res.year, 2023);
+  assert.equal(res.totalEvents, 3, "e1, e2, e4 taguent p1 en 2023 (pas e3, pas e5 de 2022)");
+  assert.deepEqual(res.topType, { type: "Voyage", count: 2 });
+
+  // Paires impliquant p1 : (p1,p2) via e1+e4 = 2, (p1,p3) via e4 = 1.
+  assert.equal(res.topMate.person.id, "p2");
+  assert.equal(res.topMate.count, 2);
+});
+
+test("computeAlmanarcPersonne() sur une personne sans évènement cette année : tout est null sauf personId/year/totalEvents", () => {
+  const res = computeAlmanarcPersonne("p4", 2023, almanarcEvents, almanarcPeople);
+  assert.deepEqual(res, { personId: "p4", year: 2023, totalEvents: 0, topType: null, topMate: null });
+});
+
+test("computeAlmanarcPersonne() : topMate exclut la personne elle-même", () => {
+  // p1 est le seul tagué sur tous ses évènements d'une année donnée => aucun
+  // mate possible, même si personCounts contiendrait p1 s'il n'était pas
+  // explicitement exclu de la recherche.
+  const people = [{ id: "p1" }];
+  const evts = [
+    { id: "e1", date: new Date(2023, 0, 1), type: "Concert", personnesTaguees: ["p1"] }
+  ];
+  const res = computeAlmanarcPersonne("p1", 2023, evts, people);
+  assert.equal(res.totalEvents, 1);
+  assert.equal(res.topMate, null);
 });
