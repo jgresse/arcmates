@@ -206,7 +206,9 @@ function render() {
       .attr("opacity", 0)
       .transition().duration(300).attr("opacity", 1),
     update => update
-      .transition().duration(300)
+      // cf. commentaire équivalent sur nodeSel plus bas (lag pendant le
+      // diaporama si on laisse une transition se relancer à chaque tick).
+      .transition().duration(diaporamaState.active ? 0 : 300)
       .attr("y1", d => yScale(d)).attr("y2", d => yScale(d)),
     exit => exit.remove()
   );
@@ -245,6 +247,33 @@ function render() {
     sel
       .classed("highlighted", d => arcMatches(d))
       .classed("dimmed", d => currentFilter.size > 0 && !arcMatches(d));
+
+    // Diaporama (cf. plans/diaporama.md) : posées après highlighted/dimmed
+    // ci-dessus pour que .diaporama-current gagne même sur un arc que le
+    // filtre personne assombrirait (évènement co-tagué, cf. plan).
+    sel
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.to.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.to.id));
+
+    // Trace de l'arc courant SYNCHRONISÉE avec le déplacement de la caméra
+    // (cf. plans/diaporama.md — retour : "le scroll va plus vite que le
+    // trait de l'arc"). La progression (t, 0→1) suit la même horloge et le
+    // même easing que la transition de zoom qui pilote yScale
+    // (DIAPORAMA_TRANSITION_MS, d3.easeCubic — l'easing par défaut d3.zoom),
+    // recalculée à CHAQUE frame à partir de la géométrie qu'on vient de
+    // poser juste au-dessus : un stroke-dasharray figé au démarrage se
+    // déformerait sous l'oeil pendant que `d` change de forme à chaque tick.
+    sel.each(function (d) {
+      if (!diaporamaState.active || !diaporamaIsCurrent(d.to.id)) {
+        this.removeAttribute("stroke-dasharray");
+        this.removeAttribute("stroke-dashoffset");
+        return;
+      }
+      const len = this.getTotalLength();
+      const t = diaporamaDrawProgress();
+      this.setAttribute("stroke-dasharray", len);
+      this.setAttribute("stroke-dashoffset", len * (1 - t));
+    });
   }
 
   // nœuds (évènements) — un cercle par évènement ponctuel, taille selon le
@@ -259,6 +288,11 @@ function render() {
   const rangeEvents = visibleEvents.filter(e => e.dateFin);
 
   function nodeRadius(d) {
+    // Pas de bonus de rayon ici pendant que l'arc se trace : le nœud
+    // "pop" (cf. triggerDiaporamaNodePop) exactement quand le tracé
+    // l'atteint, plutôt que de grossir en avance sur l'arc — retour
+    // utilisateur : "le point de l'évènement arrive avec un peu de
+    // retard [...] faire en sorte qu'il pop qd l'arc arrive dessus".
     return 5 + Math.min(d.personnesTaguees.length, 8) * 1.3;
   }
   function nodeFill(d) {
@@ -283,6 +317,8 @@ function render() {
       .attr("cy", d => yScale(d.date))
       .attr("fill", nodeFill)
       .classed("dimmed", nodeIsDimmed)
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.id))
       .on("mouseenter", (event, d) => {
         const names = d.personnesTaguees.map(id => people.find(p => p.id === id).nom).join(", ");
         tooltip
@@ -297,13 +333,22 @@ function render() {
       .on("mouseleave", () => tooltip.style("opacity", 0))
       .on("click", (event, d) => {
         event.stopPropagation();
+        if (diaporamaState.active) return; // édition désactivée pendant la lecture, cf. plans/diaporama.md
         openEditPanel(d);
       })
       .transition().duration(300)
       .attr("r", nodeRadius),
     update => update
       .classed("dimmed", nodeIsDimmed)
-      .transition().duration(300)
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.id))
+      // Durée 0 pendant le diaporama : sinon chaque tick de la transition de
+      // caméra (~60/s) interrompt et relance une transition de 300ms sur cy,
+      // qui ne repart donc jamais de sa pleine vitesse — le point traîne de
+      // plus en plus derrière yScale au lieu de le suivre, contrairement aux
+      // arcs (positionnés par simple attr(), sans transition). Retour
+      // utilisateur : "le point arrive presque une seconde en retard".
+      .transition().duration(diaporamaState.active ? 0 : 300)
       .attr("cy", d => yScale(d.date))
       .attr("r", nodeRadius),
     exit => exit.transition().duration(150).attr("r", 0).remove()
@@ -329,6 +374,8 @@ function render() {
       .attr("y1", rangeY1).attr("y2", rangeY1)
       .attr("stroke", nodeFill)
       .classed("dimmed", nodeIsDimmed)
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.id))
       .on("mouseenter", (event, d) => {
         const names = d.personnesTaguees.map(id => people.find(p => p.id === id).nom).join(", ");
         tooltip
@@ -343,13 +390,17 @@ function render() {
       .on("mouseleave", () => tooltip.style("opacity", 0))
       .on("click", (event, d) => {
         event.stopPropagation();
+        if (diaporamaState.active) return;
         openEditPanel(d);
       })
       .transition().duration(300)
       .attr("y2", rangeY2),
     update => update
       .classed("dimmed", nodeIsDimmed)
-      .transition().duration(300)
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.id))
+      // cf. commentaire équivalent sur nodeSel plus haut.
+      .transition().duration(diaporamaState.active ? 0 : 300)
       .attr("y1", rangeY1)
       .attr("y2", rangeY2),
     exit => exit.transition().duration(150).attr("y2", rangeY1).remove()
@@ -365,7 +416,7 @@ function render() {
   // ici c'est un décalage cumulatif en Y, plus robuste avec des largeurs de
   // texte variables). Une petite amorce relie le nœud à son label si décalé.
   const LABEL_COL_X = axisX + 22;
-  const labelMinGap = 16;
+  const labelMinGap = 19; // agrandi avec .event-label (11px -> 13px), sinon les titres empilés se chevauchent
   let labelData = [];
   {
     let lastY = -Infinity;
@@ -388,10 +439,14 @@ function render() {
       .attr("y", d => d.y)
       .attr("opacity", 0)
       .text(d => d.titre)
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.id))
       .transition().duration(300).attr("opacity", 1),
     update => update
       .attr("y", d => d.y)
-      .text(d => d.titre),
+      .text(d => d.titre)
+      .classed("diaporama-upcoming", d => diaporamaUpcoming(d.id))
+      .classed("diaporama-current", d => diaporamaIsCurrent(d.id)),
     exit => exit.remove()
   );
 
@@ -415,6 +470,59 @@ function render() {
       .attr("y1", d => d.nodeY).attr("y2", d => d.y),
     exit => exit.remove()
   );
+
+  // Halo + noms diaporama (cf. plans/diaporama.md) : repositionnés à chaque
+  // render() pour suivre l'évènement courant pendant que la caméra bouge
+  // (yScale change à chaque frame de la transition de zoom).
+  const diaporamaCurrentEvt = diaporamaCurrent();
+  if (diaporamaCurrentEvt) {
+    const haloY = diaporamaCurrentEvt.dateFin
+      ? (yScale(diaporamaCurrentEvt.date) + yScale(diaporamaCurrentEvt.dateFin)) / 2
+      : yScale(diaporamaCurrentEvt.date);
+    diaporamaHalo.attr("cx", axisX).attr("cy", haloY).style("display", null);
+
+    // Un <tspan> par ligne, 2 noms par ligne (demande explicite) — un
+    // <text> SVG n'interprète pas les retours à la ligne dans son contenu,
+    // il faut des <tspan>/dy successifs. Bloc vertical centré sur le halo :
+    // la 1ère ligne est décalée vers le haut de la moitié de la hauteur
+    // totale du bloc, chaque ligne suivante redescend d'une hauteur de ligne.
+    const names = diaporamaCurrentEvt.personnesTaguees
+      .map(id => people.find(p => p.id === id)?.nom)
+      .filter(Boolean);
+    const nameLines = [];
+    for (let idx = 0; idx < names.length; idx += 2) nameLines.push(names.slice(idx, idx + 2).join(", "));
+    const NAME_LINE_HEIGHT = 17; // agrandi avec .diaporama-people-name (12.5px -> 14px)
+
+    // Décalage proportionnel au rayon du nœud courant (pas un offset fixe) :
+    // un évènement avec beaucoup de personnes taguées a un nœud plus gros
+    // (cf. nodeRadius), et le "pop" à l'arrivée le grossit encore d'environ
+    // 35% en plus — sans ça les noms finissent collés/chevauchés contre un
+    // gros nœud, cf. retour utilisateur.
+    const currentRadius = diaporamaCurrentEvt.dateFin ? 10 : nodeRadius(diaporamaCurrentEvt);
+    const namesX = axisX - currentRadius - 24;
+
+    diaporamaNamesText
+      .attr("x", namesX)
+      .attr("y", haloY + 4)
+      .style("display", null);
+    diaporamaNamesText.selectAll("tspan")
+      .data(nameLines)
+      .join("tspan")
+      .attr("x", namesX)
+      .attr("dy", (d, idx) => idx === 0 ? -((nameLines.length - 1) / 2) * NAME_LINE_HEIGHT : NAME_LINE_HEIGHT)
+      .text(d => d);
+  } else {
+    diaporamaHalo.style("display", "none");
+    diaporamaNamesText.style("display", "none");
+  }
+
+  // Nettoie le "pop" (cf. triggerDiaporamaNodePop) d'un nœud qui n'est plus
+  // l'évènement courant — sinon il resterait agrandi indéfiniment (la
+  // classe n'est posée qu'à l'arrivée, jamais retirée ailleurs) au lieu de
+  // revenir à sa taille normale d'évènement "déjà atteint".
+  gNodes.selectAll("circle.event-node.diaporama-pop")
+    .filter(d => !diaporamaIsCurrent(d.id))
+    .classed("diaporama-pop", false);
 }
 
 /* ---------------------------------------------------------
@@ -684,6 +792,7 @@ function closeAddPanel() {
 }
 
 bgCatcher.on("click", (event) => {
+  if (diaporamaState.active) return; // création désactivée pendant le diaporama, cf. plans/diaporama.md
   const [, my] = d3.pointer(event, svg.node());
   const clickDate = yScale.invert(my);
   openAddPanel(clickDate);
@@ -1312,6 +1421,307 @@ almanarcModalClose.addEventListener("click", closeAlmanarcModal);
 almanarcTabGroupeBtn.addEventListener("click", () => setAlmanarcTab("groupe"));
 almanarcTabPersonneBtn.addEventListener("click", () => setAlmanarcTab("personne"));
 almanarcYearSelect.addEventListener("change", () => renderAlmanarcTab(almanarcTab));
+
+/* ---------------------------------------------------------
+   DIAPORAMA — lecture automatique de la frise, évènement par évènement,
+   dans l'ordre chronologique (cf. plans/diaporama.md). Contrairement à
+   l'Almanarc, pas de modale séparée : ce mode pilote directement le VRAI
+   zoom D3 déjà en place (zoomBehavior/baseScale/transformForDomain plus
+   haut) — chaque frame de la transition de zoom redéclenche le handler
+   "zoom" existant (yScale = rescaleY; render()), donc render() n'est pas
+   dupliqué, juste informé d'un état supplémentaire (diaporamaState).
+--------------------------------------------------------- */
+
+const DIAPORAMA_STEP_MS = 2600;
+const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const DIAPORAMA_TRANSITION_MS = REDUCED_MOTION ? 0 : 900;
+
+const diaporamaBtn = document.getElementById("diaporama-btn");
+const diaporamaBar = document.getElementById("diaporama-bar");
+const diaporamaProgress = document.getElementById("diaporama-progress");
+const diaporamaNowEmoji = document.getElementById("diaporama-now-emoji");
+const diaporamaNowLabel = document.getElementById("diaporama-now-label");
+const diaporamaNowMeta = document.getElementById("diaporama-now-meta");
+const diaporamaPlayBtn = document.getElementById("diaporama-play");
+const diaporamaPrevBtn = document.getElementById("diaporama-prev");
+const diaporamaNextBtn = document.getElementById("diaporama-next");
+const diaporamaCloseBtn = document.getElementById("diaporama-close");
+const diaporamaYearFlash = document.getElementById("diaporama-year-flash");
+const diaporamaYearFlashText = document.getElementById("diaporama-year-flash-text");
+
+// Singleton : un seul halo (+ un seul texte de noms), repositionnés à
+// chaque render() (pas un par évènement) — à tout instant il n'y a qu'un
+// seul évènement "courant". Le texte des noms est à GAUCHE du tronc
+// (ancré à droite, `text-anchor: end`), en miroir du titre déjà affiché à
+// droite — demande explicite : "voir les noms des personnes qd on passe
+// sur un évènement, ça pop à gauche de la timeline".
+const gDiaporamaHalo = svg.append("g");
+const diaporamaHalo = gDiaporamaHalo.append("circle")
+  .attr("class", "diaporama-halo")
+  .style("display", "none");
+const diaporamaNamesText = gDiaporamaHalo.append("text")
+  .attr("class", "diaporama-people-name")
+  .style("display", "none");
+
+let diaporamaState = { active: false, order: [], orderIds: new Set(), reachedIds: new Set(), index: -1, playing: false, timer: null, stepStartTime: null };
+
+function diaporamaCurrent() {
+  return diaporamaState.index >= 0 ? diaporamaState.order[diaporamaState.index] : null;
+}
+function diaporamaUpcoming(id) {
+  return diaporamaState.active && diaporamaState.orderIds.has(id) && !diaporamaState.reachedIds.has(id);
+}
+function diaporamaIsCurrent(id) {
+  const cur = diaporamaCurrent();
+  return !!cur && cur.id === id;
+}
+
+// Centre de caméra d'un évènement : le milieu du segment pour un évènement
+// multi-jours (même calcul que nodeYFor pour l'anti-collision des labels),
+// sa date sinon.
+function diaporamaCenterDate(evt) {
+  return evt.dateFin ? new Date((evt.date.getTime() + evt.dateFin.getTime()) / 2) : evt.date;
+}
+
+// Le filtre personne/type déjà actif au moment où on ouvre le diaporama
+// détermine les évènements lus (cf. plan, "Comportement") — même sémantique
+// que nodeIsDimmed dans render(), dupliquée ici volontairement plutôt que
+// refactorée pour ne pas toucher au chemin de filtrage déjà en place.
+function diaporamaEventPassesFilter(e) {
+  const personMatch = currentFilter.size === 0 || Array.from(currentFilter).every(id => e.personnesTaguees.includes(id));
+  const typeMatch = !currentTypeFilter || e.type === currentTypeFilter;
+  return personMatch && typeMatch;
+}
+
+// Ajuste [start, end] pour que le facteur de zoom qui en résulterait reste
+// dans zoomBehavior.scaleExtent() — transformForDomain() ne clampe rien
+// lui-même (le clamp du zoom molette ne s'applique qu'aux gestes
+// interactifs, pas à un transform posé directement), donc deux évènements
+// le même jour donneraient sinon un zoom démesuré. Le centre (`centerDate`)
+// reste fixe, seule la portée de la fenêtre est resserrée/élargie.
+function clampWindowToZoomExtent(centerDate, start, end, base) {
+  const [minK, maxK] = zoomBehavior.scaleExtent();
+  const spanPx = base(end) - base(start);
+  const k = (height - margin.top - margin.bottom) / spanPx;
+  if (k >= minK && k <= maxK) return { start, end };
+
+  const clampedK = Math.max(minK, Math.min(maxK, k));
+  const halfSpanPx = (height - margin.top - margin.bottom) / clampedK / 2;
+  const centerPx = base(centerDate);
+  return { start: base.invert(centerPx - halfSpanPx), end: base.invert(centerPx + halfSpanPx) };
+}
+
+function renderDiaporamaProgress() {
+  const { order, index } = diaporamaState;
+  d3.select(diaporamaProgress).selectAll(".almanarc-progress-segment")
+    .data(order, d => d.id)
+    .join("div")
+    .attr("class", "almanarc-progress-segment")
+    .html((d, i) => `<span class="almanarc-progress-fill${i < index ? " filled" : ""}"></span>`);
+}
+
+function updateDiaporamaNavButtons() {
+  diaporamaPrevBtn.disabled = diaporamaState.index <= 0;
+  diaporamaNextBtn.disabled = diaporamaState.index >= diaporamaState.order.length - 1;
+}
+
+function renderDiaporamaBar() {
+  const current = diaporamaCurrent();
+  if (!current) return;
+  diaporamaNowEmoji.textContent = TYPE_EMOJIS[current.type] || "📍";
+  diaporamaNowLabel.textContent = current.titre;
+  const names = current.personnesTaguees
+    .map(id => people.find(p => p.id === id)?.nom)
+    .filter(Boolean)
+    .join(", ");
+  diaporamaNowMeta.textContent = `${names ? names + " · " : ""}${d3.timeFormat("%d/%m/%Y")(current.date)}`;
+  renderDiaporamaProgress();
+  updateDiaporamaNavButtons();
+}
+
+function flashDiaporamaYear(year) {
+  if (REDUCED_MOTION) return;
+  diaporamaYearFlashText.textContent = year;
+  diaporamaYearFlashText.classList.remove("show");
+  void diaporamaYearFlashText.offsetWidth; // force le reflow, cf. scheduleAlmanarcAutoAdvance plus haut
+  diaporamaYearFlashText.classList.add("show");
+}
+
+// Rejoue l'animation d'apparition des noms (à gauche du tronc, cf. render())
+// à CHAQUE étape (contrairement au flash d'année, qui ne se déclenche que
+// si l'année change) — le texte lui-même est déjà repositionné/repeuplé par
+// render(), cette fonction ne fait que relancer le "pop" CSS dessus.
+function flashDiaporamaNames() {
+  if (REDUCED_MOTION) return;
+  diaporamaNamesText.classed("pop", false);
+  void diaporamaNamesText.node().offsetWidth;
+  diaporamaNamesText.classed("pop", true);
+}
+
+// Progression (0→1, easée) du tracé de l'arc courant depuis le début de
+// l'étape — partagée entre updateArcAttrs (dans render()) et le nœud
+// (cf. triggerDiaporamaNodePop) pour qu'ils restent lisibles comme UN seul
+// mouvement (l'arc qui avance, puis le point qui pop en arrivant).
+function diaporamaDrawProgress() {
+  if (!diaporamaState.active || diaporamaState.stepStartTime === null || DIAPORAMA_TRANSITION_MS === 0) return 1;
+  const raw = Math.min(1, (performance.now() - diaporamaState.stepStartTime) / DIAPORAMA_TRANSITION_MS);
+  return d3.easeCubic(raw);
+}
+
+// Fait "pop" le nœud de `evt` — appelé quand le tracé de l'arc l'atteint
+// (fin de la transition de caméra), pas dès le début de l'étape : retour
+// utilisateur, "le point de l'évènement arrive avec un peu de retard [...]
+// faire en sorte qu'il pop qd l'arc arrive dessus". `evt` peut avoir déjà
+// été dépassé si l'utilisateur a enchaîné suivant/précédent avant la fin
+// de la transition — dans ce cas ce pop, obsolète, est ignoré.
+function triggerDiaporamaNodePop(evt) {
+  if (REDUCED_MOTION || !diaporamaState.active || diaporamaCurrent() !== evt) return;
+  gNodes.selectAll("circle.event-node").filter(d => d.id === evt.id).each(function () {
+    const node = d3.select(this);
+    node.classed("diaporama-pop", false);
+    void this.getBoundingClientRect(); // force le reflow (pas d'offsetWidth sur un élément SVG)
+    node.classed("diaporama-pop", true);
+  });
+}
+
+function clearDiaporamaTimer() {
+  clearTimeout(diaporamaState.timer);
+  diaporamaState.timer = null;
+}
+
+// Anime le segment courant de la barre de progression puis avance
+// automatiquement — même pattern que scheduleAlmanarcAutoAdvance (reflow
+// forcé avant d'ajouter ".active" pour que la transition parte bien de 0%).
+function scheduleDiaporamaAdvance() {
+  clearDiaporamaTimer();
+  const fills = diaporamaProgress.querySelectorAll(".almanarc-progress-fill");
+  const activeFill = fills[diaporamaState.index];
+  if (activeFill) {
+    activeFill.style.transitionDuration = `${DIAPORAMA_STEP_MS}ms`;
+    void activeFill.offsetWidth;
+    activeFill.classList.add("active");
+  }
+  diaporamaState.timer = setTimeout(() => {
+    if (diaporamaState.index >= diaporamaState.order.length - 1) { pauseDiaporama(); return; }
+    goToDiaporamaStep(diaporamaState.index + 1);
+  }, DIAPORAMA_STEP_MS);
+}
+
+function goToDiaporamaStep(i) {
+  if (i < 0 || i >= diaporamaState.order.length) return;
+  clearDiaporamaTimer();
+
+  const previousIndex = diaporamaState.index;
+  diaporamaState.index = i;
+  diaporamaState.reachedIds = new Set(diaporamaState.order.slice(0, i + 1).map(e => e.id));
+  diaporamaState.stepStartTime = performance.now();
+
+  const current = diaporamaState.order[i];
+  if (previousIndex >= 0) {
+    const prevYear = diaporamaState.order[previousIndex].date.getFullYear();
+    const curYear = current.date.getFullYear();
+    if (curYear !== prevYear) flashDiaporamaYear(curYear);
+  }
+
+  render();
+  renderDiaporamaBar();
+  flashDiaporamaNames();
+
+  const prevEvent = diaporamaState.order[i - 1] || null;
+  const nextEvent = diaporamaState.order[i + 1] || null;
+  const centerDate = diaporamaCenterDate(current);
+  const timeWindow = diaporamaWindow(
+    prevEvent ? diaporamaCenterDate(prevEvent) : null,
+    centerDate,
+    nextEvent ? diaporamaCenterDate(nextEvent) : null
+  );
+  const clamped = clampWindowToZoomExtent(centerDate, timeWindow.start, timeWindow.end, baseScale);
+
+  svg.transition().duration(DIAPORAMA_TRANSITION_MS)
+    .call(zoomBehavior.transform, transformForDomain(clamped.start, clamped.end, baseScale))
+    .on("end", () => { render(); triggerDiaporamaNodePop(current); }); // dernière frame garantie à t=1 (tracé complet) + pop du nœud à l'arrivée
+
+  if (diaporamaState.playing) scheduleDiaporamaAdvance();
+}
+
+function playDiaporama() {
+  diaporamaState.playing = true;
+  diaporamaPlayBtn.textContent = "⏸";
+  diaporamaPlayBtn.setAttribute("aria-label", "Mettre en pause");
+  scheduleDiaporamaAdvance();
+}
+
+function pauseDiaporama() {
+  diaporamaState.playing = false;
+  diaporamaPlayBtn.textContent = "▶";
+  diaporamaPlayBtn.setAttribute("aria-label", "Reprendre la lecture");
+  clearDiaporamaTimer();
+  const fills = diaporamaProgress.querySelectorAll(".almanarc-progress-fill");
+  fills[diaporamaState.index]?.classList.remove("active");
+}
+
+function nextDiaporamaStep() {
+  if (diaporamaState.index < diaporamaState.order.length - 1) goToDiaporamaStep(diaporamaState.index + 1);
+}
+function prevDiaporamaStep() {
+  if (diaporamaState.index > 0) goToDiaporamaStep(diaporamaState.index - 1);
+}
+
+function openDiaporama() {
+  const order = events.filter(diaporamaEventPassesFilter).sort((a, b) => a.date - b.date);
+  if (order.length === 0) return; // rien à raconter (filtre trop restrictif, ou 0 évènement) — bouton reste cliquable mais no-op
+
+  diaporamaState = {
+    active: true,
+    order,
+    orderIds: new Set(order.map(e => e.id)),
+    reachedIds: new Set(),
+    index: -1,
+    playing: true,
+    timer: null,
+    stepStartTime: null
+  };
+
+  closeDrawer();
+  diaporamaBar.classList.remove("hidden");
+  diaporamaPlayBtn.textContent = "⏸";
+  diaporamaPlayBtn.setAttribute("aria-label", "Mettre en pause");
+  goToDiaporamaStep(0);
+}
+
+function closeDiaporama() {
+  clearDiaporamaTimer();
+  diaporamaState.active = false;
+  diaporamaState.playing = false;
+  diaporamaState.index = -1;
+  diaporamaYearFlashText.classList.remove("show");
+  diaporamaBar.classList.add("hidden");
+  render();
+}
+
+diaporamaBtn.addEventListener("click", openDiaporama);
+diaporamaCloseBtn.addEventListener("click", closeDiaporama);
+diaporamaPrevBtn.addEventListener("click", prevDiaporamaStep);
+diaporamaNextBtn.addEventListener("click", nextDiaporamaStep);
+diaporamaPlayBtn.addEventListener("click", () => diaporamaState.playing ? pauseDiaporama() : playDiaporama());
+diaporamaProgress.addEventListener("click", (event) => {
+  const segment = event.target.closest(".almanarc-progress-segment");
+  if (!segment) return;
+  const index = Array.from(diaporamaProgress.children).indexOf(segment);
+  if (index !== -1) goToDiaporamaStep(index);
+});
+
+// Flèches/Espace/Échap actifs uniquement diaporama ouvert (même garde que
+// le pattern Almanarc plus haut) — écouteur séparé plutôt qu'un ajout à
+// celui de l'Almanarc : les deux modes ne sont jamais actifs en même temps
+// mais restent des features indépendantes.
+document.addEventListener("keydown", (event) => {
+  if (!diaporamaState.active) return;
+  if (event.key === "ArrowRight") nextDiaporamaStep();
+  else if (event.key === "ArrowLeft") prevDiaporamaStep();
+  else if (event.key === " ") { event.preventDefault(); diaporamaState.playing ? pauseDiaporama() : playDiaporama(); }
+  else if (event.key === "Escape") closeDiaporama();
+});
 
 // Démarrage : on attend le chargement Supabase (personnes + évènements)
 // avant de peupler la légende/le panneau et de lancer le premier render() —

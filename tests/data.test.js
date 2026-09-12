@@ -11,7 +11,8 @@ const {
   TYPE_COLORS, TYPE_EMOJIS, typeColor,
   AVATAR_EMOJIS, buildPeople, computeArcsForPerson, applyRealtimeChange,
   needsIdentitySelection, needsProfileCompletion,
-  availableYears, computeAlmanarcGroupe, computeAlmanarcPersonne
+  availableYears, computeAlmanarcGroupe, computeAlmanarcPersonne,
+  diaporamaWindow
 } = require("../data.js");
 
 test("EVENT_TYPES / TYPE_COLORS / TYPE_EMOJIS restent en phase", () => {
@@ -283,4 +284,49 @@ test("computeAlmanarcPersonne() : topMate exclut la personne elle-même", () => 
   const res = computeAlmanarcPersonne("p1", 2023, evts, people);
   assert.equal(res.totalEvents, 1);
   assert.equal(res.topMate, null);
+});
+
+test("diaporamaWindow() centre la fenêtre sur currentDate et retient le voisin le plus proche", () => {
+  const current = new Date(2023, 5, 15);
+  const prev = new Date(2023, 5, 1);   // 14 jours avant
+  const next = new Date(2023, 6, 15);  // 30 jours après => le voisin le plus proche est prev
+  const { start, end } = diaporamaWindow(prev, current, next);
+
+  assert.equal(end - current, current - start, "fenêtre symétrique autour de currentDate");
+  const gapPrevMs = current - prev;
+  assert.equal(end - start, gapPrevMs * 2.6, "portée basée sur le voisin le plus proche (prev)");
+});
+
+test("diaporamaWindow() : premier évènement (pas de prev) se base sur le voisin suivant", () => {
+  const current = new Date(2023, 0, 1);
+  const next = new Date(2023, 0, 21); // 20 jours après
+  const { start, end } = diaporamaWindow(null, current, next);
+  assert.equal(end - start, (next - current) * 2.6);
+});
+
+test("diaporamaWindow() : dernier évènement (pas de next) se base sur le voisin précédent", () => {
+  const current = new Date(2023, 11, 31);
+  const prev = new Date(2023, 11, 1); // 30 jours avant
+  const { start, end } = diaporamaWindow(prev, current, null);
+  assert.equal(end - start, (current - prev) * 2.6);
+});
+
+test("diaporamaWindow() : aucun voisin (une seule date au total) retombe sur defaultSpanMs", () => {
+  const current = new Date(2023, 0, 1);
+  const { start, end } = diaporamaWindow(null, current, null, { defaultSpanMs: 1000, minSpanMs: 0, maxSpanMs: Infinity });
+  assert.equal(end - start, 1000 * 2.6);
+});
+
+test("diaporamaWindow() : deux évènements très proches, la portée est clampée à minSpanMs", () => {
+  const current = new Date(2023, 0, 1, 0, 0, 1); // 1 seconde après prev
+  const prev = new Date(2023, 0, 1, 0, 0, 0);
+  const { start, end } = diaporamaWindow(prev, current, null, { minSpanMs: 5000 });
+  assert.equal(end - start, 5000);
+});
+
+test("diaporamaWindow() : deux évènements très éloignés, la portée est clampée à maxSpanMs", () => {
+  const current = new Date(2023, 0, 1);
+  const prev = new Date(2000, 0, 1); // ~23 ans avant
+  const { start, end } = diaporamaWindow(prev, current, null, { maxSpanMs: 1000 * 60 * 60 * 24 * 365 * 2 });
+  assert.equal(end - start, 1000 * 60 * 60 * 24 * 365 * 2);
 });

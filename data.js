@@ -297,6 +297,40 @@ function computeAlmanarcPersonne(personId, year, eventsList = events, peopleList
 }
 
 /* ---------------------------------------------------------
+   3quater) DIAPORAMA — fenêtre temporelle à donner au zoom D3 pour centrer
+   la caméra sur l'évènement courant, cf. plans/diaporama.md. Calcul pur
+   (dates en entrée, pas d'évènement complet) pour rester testable sans
+   dépendre du rendu ; chart.js se charge de convertir un évènement (avec
+   sa date de fin éventuelle) en date "centre" avant d'appeler cette
+   fonction.
+--------------------------------------------------------- */
+
+// Fenêtre [start, end] centrée sur `currentDate`, dimensionnée pour garder
+// le voisin le plus proche (précédent OU suivant dans l'ordre de lecture)
+// visible — plus les deux évènements sont proches, plus on zoome ; plus
+// ils sont loin, plus on dézoome, dans les bornes minSpanMs/maxSpanMs.
+// `prevDate`/`nextDate` valent `null` en bout de liste (premier/dernier
+// évènement) ; si aucun des deux n'existe (une seule date au total), on
+// retombe sur `defaultSpanMs`.
+function diaporamaWindow(prevDate, currentDate, nextDate, opts = {}) {
+  const minSpanMs = opts.minSpanMs ?? 1000 * 60 * 60 * 24 * 14;       // 14 jours
+  const maxSpanMs = opts.maxSpanMs ?? 1000 * 60 * 60 * 24 * 365 * 2;  // 2 ans
+  const defaultSpanMs = opts.defaultSpanMs ?? 1000 * 60 * 60 * 24 * 365; // 1 an
+
+  const gapPrev = prevDate ? currentDate - prevDate : null;
+  const gapNext = nextDate ? nextDate - currentDate : null;
+  const gaps = [gapPrev, gapNext].filter(g => g !== null && g > 0);
+  const chosenGap = gaps.length ? Math.min(...gaps) : defaultSpanMs;
+
+  const span = Math.max(minSpanMs, Math.min(maxSpanMs, chosenGap * 2.6));
+  const halfSpan = span / 2;
+  return {
+    start: new Date(currentDate.getTime() - halfSpan),
+    end: new Date(currentDate.getTime() + halfSpan)
+  };
+}
+
+/* ---------------------------------------------------------
    3bis) IDENTITÉ DÉCLARATIVE — décisions pures utilisées par le flux
    "qui es-tu" de chart.js. Extraites ici (plutôt que laissées inline dans
    chart.js) pour rester testables sans dépendre du rendu D3/SVG, même
@@ -352,6 +386,7 @@ if (typeof module !== "undefined" && module.exports) {
     TYPE_COLORS, TYPE_EMOJIS, typeColor, AVATAR_EMOJIS,
     buildPeople, computeArcsForPerson, applyRealtimeChange,
     needsIdentitySelection, needsProfileCompletion,
-    availableYears, computeAlmanarcGroupe, computeAlmanarcPersonne
+    availableYears, computeAlmanarcGroupe, computeAlmanarcPersonne,
+    diaporamaWindow
   };
 }

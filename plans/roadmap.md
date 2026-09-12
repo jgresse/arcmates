@@ -77,13 +77,13 @@
       c'est l'anniversaire, façon "souvenirs". Bandeau/notif discret au
       boot, calculable directement sur les dates déjà en base (pas de
       backend supplémentaire).
-- [ ] **Almanarc (bilan annuel)** — vue à la demande, bilan de groupe
+- [x] **Almanarc (bilan annuel)** — vue à la demande, bilan de groupe
       (type d'évènement dominant, personne la plus active, plus grand
       voyageur, duo le plus fréquent) + bilan par personne (mêmes stats
       ramenées à un mate choisi). Pur calcul côté client sur
-      `events`/`people` déjà chargés, zéro backend en plus. Plan validé :
-      [`plans/almanarc.md`](almanarc.md) — **prochaine feature à
-      implémenter**.
+      `events`/`people` déjà chargés, zéro backend en plus. Implémenté (plan
+      d'origine supprimé une fois livré).
+- [ ] Menu des personnes: ajouter une barre de scroll
 - [ ] Badges statistiques par personne, affichés en permanence sur la
       frise/légende (ex. "🧳 le plus voyageur", "🎤 a vu le plus de
       concerts") — Almanarc ci-dessus calcule déjà ces agrégats pour son
@@ -93,10 +93,13 @@
 - [ ] Lien partageable vers un évènement précis (deep link type
       `#event=<id>` qui centre/zoome dessus au chargement) — variante
       ciblée de la persistance des filtres dans l'URL listée ci-dessus.
-- [ ] Mode "diaporama" — bouton qui scrolle/zoome automatiquement la frise
-      évènement par évènement dans l'ordre chronologique en surlignant
-      chacun, pour raconter la timeline en groupe plutôt que de naviguer à
-      la souris.
+- [x] **Mode "diaporama"** — bouton qui scrolle/zoome automatiquement la
+      frise évènement par évènement dans l'ordre chronologique (respecte le
+      filtre personne/type actif), en surlignant chacun (nœud qui pop à
+      l'arrivée de l'arc tracé en synchro avec le zoom, noms des personnes
+      taguées affichés à gauche du tronc), pour raconter la timeline en
+      groupe plutôt que de naviguer à la souris. Implémenté (plan d'origine
+      supprimé une fois livré).
 - [ ] Lien vers une conversation WhatsApp par évènement — champ optionnel
       (URL) sur l'évènement pointant vers le fil WhatsApp correspondant ;
       un clic ouvre directement la conversation (photos, discussion) dans
@@ -104,7 +107,12 @@
       avec le choix déjà acté de ne pas gérer d'upload d'image (cf.
       commentaire `AVATAR_EMOJIS` dans `data.js`) : Arcmates reste un
       pointeur vers les souvenirs, pas leur stockage.
-- [ ] Commentaires sur un évènement (qui se souvient de quoi).
+- [ ] **Commentaires sur un évènement** (qui se souvient de quoi) — fil de
+      réactions distinct du champ `description` existant. Plan détaillé :
+      [`plans/comments.md`](comments.md) (table `comments` dédiée,
+      édition/suppression restreinte à l'auteur côté UI seulement,
+      notification admin par email réutilisant le pattern
+      `notify-new-person`).
 - [ ] Types d'évènements en table Supabase plutôt que codés en dur dans
       `data.js` (`EVENT_TYPES`/`TYPE_COLORS`/`TYPE_EMOJIS`) — permettrait
       d'ajouter/renommer un type sans déploiement, et prépare la gestion en

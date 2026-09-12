@@ -22,11 +22,34 @@
 <div id="layout">
   <div id="chart-wrap">
     <svg id="chart"></svg>
+
+    <div id="diaporama-year-flash"><span id="diaporama-year-flash-text"></span></div>
+
+    <!-- Barre de contrôle du mode diaporama (cf. plans/diaporama.md) — masquée
+         par défaut, affichée par-dessus la VRAIE frise (pas une modale à
+         part : la caméra qui bouge doit être le vrai zoom D3). -->
+    <div id="diaporama-bar" class="hidden">
+      <div id="diaporama-progress" class="almanarc-progress"></div>
+      <div id="diaporama-now">
+        <span id="diaporama-now-emoji" class="diaporama-now-emoji"></span>
+        <div class="diaporama-now-text">
+          <p id="diaporama-now-label" class="diaporama-now-label"></p>
+          <div id="diaporama-now-meta" class="diaporama-now-meta"></div>
+        </div>
+      </div>
+      <div id="diaporama-controls">
+        <button id="diaporama-prev" class="almanarc-nav" type="button" aria-label="Évènement précédent">‹</button>
+        <button id="diaporama-play" class="almanarc-nav diaporama-play" type="button" aria-label="Mettre en pause">⏸</button>
+        <button id="diaporama-next" class="almanarc-nav" type="button" aria-label="Évènement suivant">›</button>
+        <button id="diaporama-close" class="almanarc-nav diaporama-close" type="button" aria-label="Quitter le diaporama">✕</button>
+      </div>
+    </div>
   </div>
 
   <div id="sidebar">
     <a id="sidebar-guide-link" class="sidebar-guide-link" href="guide.html">📖 Guide d'utilisation</a>
     <button id="almanarc-btn" class="sidebar-guide-link">✨ Almanarc</button>
+    <button id="diaporama-btn" class="sidebar-guide-link">🎬 Diaporama</button>
 
     <div id="legend-wrap">
       <p class="legend-hint">Cliquer sur une personne pour filtrer la frise sur ses arcs (re-cliquer pour désélectionner) :</p>
