@@ -107,6 +107,42 @@
       avec le choix déjà acté de ne pas gérer d'upload d'image (cf.
       commentaire `AVATAR_EMOJIS` dans `data.js`) : Arcmates reste un
       pointeur vers les souvenirs, pas leur stockage.
+- [ ] **Lieu sur un évènement, avec autocomplétion façon Google Maps** —
+      champ optionnel `lieu` sur les évènements (surtout utile pour
+      "Voyage", mais pas restreint à ce type), saisi via un champ
+      autocomplete plutôt qu'un texte libre non structuré. Pistes pour
+      l'autocomplétion sans dépendre de Google Maps (clé API + compte de
+      facturation, pas aligné avec le "pas de backend" du projet) :
+        - **Photon** (`photon.komoot.io`, API HTTP publique basée sur
+          OpenStreetMap, sans clé, CORS ouvert) — requêtable directement
+          depuis le client en `fetch()` à chaque frappe, cohérent avec
+          l'absence de bundler/backend actuelle. Couverture mondiale (pas
+          limité à la France), pertinent vu que le groupe voyage.
+        - Alternative si on préfère rester 100% francophone/précis en
+          France : `api-adresse.data.gouv.fr` (encore plus léger, aucune
+          clé non plus), mais écarté par défaut car limité aux adresses
+          françaises — inadapté aux évènements "Voyage" hors France.
+        - Stocker dès maintenant le libellé choisi (`lieu`, texte) et les
+          coordonnées renvoyées par l'API (`lieu_lat`/`lieu_lng`), même si
+          rien ne les exploite tout de suite — évite une seconde migration
+          le jour où la carte des voyages (item suivant) est implémentée.
+        - Dégradation : si l'API externe est indisponible/rate-limitée, le
+          champ reste un simple input texte libre (la valeur tapée est
+          acceptée telle quelle, la sauvegarde n'est jamais bloquée par
+          l'absence de sélection dans la liste).
+- [ ] **Carte des voyages** — mini-carte (d3-geo, chargeable en CDN comme
+      D3 lui-même, pas de nouvelle dépendance de build) affichant les
+      évènements "Voyage" par personne/groupe, à partir des coordonnées
+      `lieu_lat`/`lieu_lng` de l'item précédent. Dépend du champ `lieu`
+      ci-dessus — pas de sens sans données de localisation en base.
+        - Trajet tracé entre les lieux dans l'ordre chronologique (façon
+          Polarsteps), pas juste des points isolés — même logique que les
+          arcs personne/personne déjà calculés dans `data.js`
+          (`computeArcsForPerson`, trié par date), appliquée aux
+          coordonnées géo plutôt qu'à l'axe temporel du tronc. L'animation
+          de tracé du mode diaporama (`chart.js`) est probablement
+          réutilisable telle quelle pour l'effet "ligne qui se dessine"
+          plutôt que d'en réécrire une.
 - [ ] **Commentaires sur un évènement** (qui se souvient de quoi) — fil de
       réactions distinct du champ `description` existant. Plan détaillé :
       [`plans/comments.md`](comments.md) (table `comments` dédiée,
