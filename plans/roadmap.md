@@ -83,7 +83,8 @@
       ramenées à un mate choisi). Pur calcul côté client sur
       `events`/`people` déjà chargés, zéro backend en plus. Implémenté (plan
       d'origine supprimé une fois livré).
-- [ ] Menu des personnes: ajouter une barre de scroll
+- [x] Menu des personnes: ajouter une barre de scroll — implémenté
+      (`#legend` limité en hauteur, scroll interne, cf. `style.css`).
 - [ ] Badges statistiques par personne, affichés en permanence sur la
       frise/légende (ex. "🧳 le plus voyageur", "🎤 a vu le plus de
       concerts") — Almanarc ci-dessus calcule déjà ces agrégats pour son

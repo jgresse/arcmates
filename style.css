@@ -257,6 +257,22 @@ p.sub { margin: 0; color: var(--ink-secondary); font-size: 12.5px; line-height: 
   margin: 0;
   padding: 0;
 }
+/* Menu des personnes (#legend) : scroll interne plutôt que de laisser la
+   liste grandir indéfiniment et pousser le reste de la sidebar (types,
+   panneau d'ajout) hors de vue à mesure que le groupe s'agrandit. */
+#legend {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px; /* évite que la scrollbar chevauche le dernier badge */
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) transparent;
+}
+#legend::-webkit-scrollbar { width: 6px; }
+#legend::-webkit-scrollbar-track { background: transparent; }
+#legend::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 999px;
+}
 .legend-item {
   display: flex;
   align-items: center;
