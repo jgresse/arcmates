@@ -36,10 +36,20 @@ function computeWidth() {
   const raw = document.getElementById("chart-wrap").clientWidth;
   return Math.max(280, Math.min(1400, raw));
 }
+// Répartition gauche/droite du tronc — la colonne de droite porte à la
+// fois les arcs ET les titres (texte, bien plus gourmand en largeur qu'une
+// courbe), alors que la gauche ne porte que des arcs ; un déséquilibre
+// (testé à 0.32) a été essayé pour redonner de la place aux titres tronqués
+// sur mobile, mais un tronc excentré rendait la frise moins naturelle à
+// l'oeil — retour utilisateur après test sur téléphone. Recentré à 0.5,
+// mais gardé en constante nommée (pas un simple `/2`) pour pouvoir la
+// retoucher facilement si le besoin revient.
+const LEFT_ARC_RATIO = 0.5;
+
 let width = computeWidth();
 let availableArcSpace = width - margin.left - margin.right;
-let LEFT_ARC_SPACE = availableArcSpace / 2;
-let RIGHT_ARC_SPACE = availableArcSpace / 2;
+let LEFT_ARC_SPACE = availableArcSpace * LEFT_ARC_RATIO;
+let RIGHT_ARC_SPACE = availableArcSpace * (1 - LEFT_ARC_RATIO);
 let axisX = margin.left + LEFT_ARC_SPACE;
 
 const svg = d3.select("#chart")
@@ -599,8 +609,8 @@ function handleResize() {
   height = newHeight;
   width = newWidth;
   availableArcSpace = width - margin.left - margin.right;
-  LEFT_ARC_SPACE = availableArcSpace / 2;
-  RIGHT_ARC_SPACE = availableArcSpace / 2;
+  LEFT_ARC_SPACE = availableArcSpace * LEFT_ARC_RATIO;
+  RIGHT_ARC_SPACE = availableArcSpace * (1 - LEFT_ARC_RATIO);
   axisX = margin.left + LEFT_ARC_SPACE;
 
   svg.attr("width", width).attr("height", height);
